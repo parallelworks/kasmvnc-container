@@ -44,15 +44,22 @@ fi
 # Force rebuild even if sqsh exists (set FORCE=true to override)
 FORCE="${FORCE:-false}"
 
+# Get absolute path for output file
+if [[ "${SQSH_FILE}" != /* ]]; then
+    SQSH_FILE_ABS="$(pwd)/${SQSH_FILE}"
+else
+    SQSH_FILE_ABS="${SQSH_FILE}"
+fi
+
 echo "=== Enroot Container Builder ==="
 echo "Build mode: ${BUILD_MODE}"
-echo "Output file: ${SQSH_FILE}"
+echo "Output file: ${SQSH_FILE_ABS}"
 echo ""
 
 # Check if sqsh file already exists
 if [ -f "${SQSH_FILE}" ] && [ "$FORCE" != "true" ]; then
     echo "=== Existing container found ==="
-    echo "File: ${SQSH_FILE}"
+    echo "File: ${SQSH_FILE_ABS}"
     echo "Size: $(du -h "${SQSH_FILE}" | cut -f1)"
     echo "Date: $(stat -c %y "${SQSH_FILE}" 2>/dev/null || stat -f %Sm "${SQSH_FILE}" 2>/dev/null)"
     echo ""

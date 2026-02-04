@@ -114,15 +114,35 @@ echo "[INFO] WebSocket host: $KASM_WEBSOCKET_HOST"
 # Generate self-signed SSL cert (KasmVNC requires cert files even when SSL is disabled on some systems)
 SSL_DIR="$HOME/.vnc/ssl"
 mkdir -p "$SSL_DIR"
+SSL_AVAILABLE="false"
 if [ ! -f "$SSL_DIR/self.pem" ]; then
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
-        -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>/dev/null
-    echo "[INFO] Generated self-signed SSL certificate"
+    if command -v openssl &> /dev/null; then
+        if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
+            -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>&1; then
+            echo "[INFO] Generated self-signed SSL certificate"
+            SSL_AVAILABLE="true"
+        else
+            echo "[WARN] Failed to generate SSL certificate (openssl failed)"
+        fi
+    else
+        echo "[WARN] openssl not found, skipping SSL certificate generation"
+    fi
+else
+    echo "[INFO] Using existing SSL certificate"
+    SSL_AVAILABLE="true"
+fi
+
+# Verify the certificate file actually exists and is readable
+if [ "$SSL_AVAILABLE" = "true" ] && [ ! -f "$SSL_DIR/self.pem" ]; then
+    echo "[WARN] SSL certificate file not found after generation"
+    SSL_AVAILABLE="false"
 fi
 
 # Generate kasmvnc.yaml for reverse proxy mode
-cat > "$HOME/.vnc/kasmvnc.yaml" << EOF
+# Only include SSL config if certificate is available
+if [ "$SSL_AVAILABLE" = "true" ]; then
+    cat > "$HOME/.vnc/kasmvnc.yaml" << EOF
 network:
   interface: 127.0.0.1
   ssl:
@@ -133,7 +153,18 @@ network:
     public_ip: 127.0.0.1
 ${KASMVNC_YAML_EXTRA}
 EOF
-echo "[INFO] Generated kasmvnc.yaml for reverse proxy mode"
+else
+    cat > "$HOME/.vnc/kasmvnc.yaml" << EOF
+network:
+  interface: 127.0.0.1
+  ssl:
+    require_ssl: false
+  udp:
+    public_ip: 127.0.0.1
+${KASMVNC_YAML_EXTRA}
+EOF
+fi
+echo "[INFO] Generated kasmvnc.yaml for reverse proxy mode (SSL: $SSL_AVAILABLE)"
 
 # Generate xstartup for Cinnamon desktop
 cat > "$HOME/.vnc/xstartup" << 'EOF'

@@ -1,11 +1,17 @@
 #!/bin/bash
 #
-# Build an Enroot container from the Dockerfile
+# Build an Enroot container from Dockerfile or pull from Docker registry
 #
 # Enroot is NVIDIA's HPC container runtime, optimized for:
 # - Unprivileged container execution
 # - GPU workloads with native NVIDIA support
 # - Slurm integration via pyxis plugin
+#
+# Modes:
+#   local    - Build Docker image locally, then convert to squashfs (requires Docker)
+#   registry - Pull image directly from Docker registry (no Docker required)
+#
+# The script auto-detects Docker availability and falls back to registry mode if needed.
 #
 
 set -e
@@ -17,25 +23,63 @@ IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 SQSH_FILE="${SQSH_FILE:-${IMAGE_NAME}.sqsh}"
 
-echo "=== Building Enroot container from Dockerfile ==="
-echo "Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+# Docker registry for pulling pre-built images (used in registry mode)
+# Format: registry/namespace/image (without tag)
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc-container}"
+
+# Build mode: "local" (build with Docker) or "registry" (pull from registry)
+# If not set, auto-detect based on Docker availability
+BUILD_MODE="${BUILD_MODE:-}"
+
+# Auto-detect build mode if not specified
+if [ -z "$BUILD_MODE" ]; then
+    if command -v docker &> /dev/null && docker info &> /dev/null; then
+        BUILD_MODE="local"
+    else
+        BUILD_MODE="registry"
+    fi
+fi
+
+echo "=== Enroot Container Builder ==="
+echo "Build mode: ${BUILD_MODE}"
+echo "Output file: ${SQSH_FILE}"
 echo ""
 
-# Step 1: Build Docker image
-echo "Step 1: Building Docker image..."
-docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" "${SCRIPT_DIR}"
-
-# Step 2: Convert to Enroot squashfs
-echo ""
-echo "Step 2: Converting Docker image to Enroot squashfs..."
-
+# Remove existing squashfs file if present
 if [ -f "${SQSH_FILE}" ]; then
     echo "Removing existing ${SQSH_FILE}..."
     rm -f "${SQSH_FILE}"
 fi
 
-# Import from Docker daemon
-enroot import -o "${SQSH_FILE}" "dockerd://${IMAGE_NAME}:${IMAGE_TAG}"
+if [ "$BUILD_MODE" = "local" ]; then
+    # Local mode: Build Docker image and convert to squashfs
+    echo "=== Building from local Dockerfile ==="
+    echo "Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+    echo ""
+
+    echo "Step 1: Building Docker image..."
+    docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" "${SCRIPT_DIR}"
+
+    echo ""
+    echo "Step 2: Converting Docker image to Enroot squashfs..."
+    enroot import -o "${SQSH_FILE}" "dockerd://${IMAGE_NAME}:${IMAGE_TAG}"
+
+elif [ "$BUILD_MODE" = "registry" ]; then
+    # Registry mode: Pull directly from Docker registry
+    REGISTRY_IMAGE="${DOCKER_REGISTRY}:${IMAGE_TAG}"
+    echo "=== Pulling from Docker registry ==="
+    echo "Registry image: ${REGISTRY_IMAGE}"
+    echo ""
+    echo "Note: This requires the image to be pre-built and pushed to the registry."
+    echo ""
+
+    echo "Importing image from registry to Enroot squashfs..."
+    enroot import -o "${SQSH_FILE}" "docker://${REGISTRY_IMAGE}"
+
+else
+    echo "ERROR: Invalid BUILD_MODE '${BUILD_MODE}'. Must be 'local' or 'registry'."
+    exit 1
+fi
 
 echo ""
 echo "=== Build complete ==="

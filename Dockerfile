@@ -184,15 +184,23 @@ RUN echo '# Source global definitions' > /metauser_home_vanilla/.bashrc && \
     echo 'PS1='"'"'\u@\h:\w\$ '"'" >> /metauser_home_vanilla/.bashrc && \
     chown 1000:1000 /metauser_home_vanilla/.bashrc
 
-# Force gnome-terminal to always run /bin/bash (bypass $SHELL entirely)
-# Replace the desktop file to ensure bash is always used
+# Create a bash wrapper that forces correct PS1 and environment
+RUN cat > /usr/local/bin/container-bash << 'BASHWRAPPER'
+#!/bin/bash
+export SHELL=/bin/bash
+export PS1='\u@\h:\w\$ '
+exec /bin/bash --login "$@"
+BASHWRAPPER
+RUN chmod 755 /usr/local/bin/container-bash
+
+# Force gnome-terminal to always run our bash wrapper (bypass $SHELL entirely)
 RUN cat > /usr/share/applications/org.gnome.Terminal.desktop << 'TERMEOF'
 [Desktop Entry]
 Name=Terminal
 Comment=Use the command line
 Keywords=shell;prompt;command;commandline;cmd;
 TryExec=gnome-terminal
-Exec=gnome-terminal -- /bin/bash
+Exec=gnome-terminal -- /usr/local/bin/container-bash
 Icon=org.gnome.Terminal
 Type=Application
 Categories=GNOME;GTK;System;TerminalEmulator;
@@ -201,7 +209,7 @@ X-GNOME-SingleWindow=false
 
 [Desktop Action new-window]
 Name=New Window
-Exec=gnome-terminal --window -- /bin/bash
+Exec=gnome-terminal --window -- /usr/local/bin/container-bash
 
 [Desktop Action preferences]
 Name=Preferences

@@ -171,6 +171,33 @@ export XDG_DATA_DIRS=/usr/share:/usr/local/share
 # Kill any stale Cinnamon processes
 killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
 
+# Fix for LDAP/NIS users not in /etc/passwd - create temp passwd entry
+# This is needed for dbus to start properly
+if ! getent passwd $(id -u) > /dev/null 2>&1; then
+    echo "[INFO] User not in passwd database, creating temporary entry for dbus"
+    NSS_WRAPPER_DIR="/tmp/nss_wrapper_$(id -u)"
+    mkdir -p "$NSS_WRAPPER_DIR"
+
+    # Create passwd entry
+    echo "$(id -un):x:$(id -u):$(id -g):$(id -un):$HOME:/bin/bash" > "$NSS_WRAPPER_DIR/passwd"
+    # Also include root
+    grep "^root:" /etc/passwd >> "$NSS_WRAPPER_DIR/passwd" 2>/dev/null || echo "root:x:0:0:root:/root:/bin/bash" >> "$NSS_WRAPPER_DIR/passwd"
+
+    # Create group entry
+    echo "$(id -gn):x:$(id -g):" > "$NSS_WRAPPER_DIR/group"
+    grep "^root:" /etc/group >> "$NSS_WRAPPER_DIR/group" 2>/dev/null || echo "root:x:0:" >> "$NSS_WRAPPER_DIR/group"
+
+    export NSS_WRAPPER_PASSWD="$NSS_WRAPPER_DIR/passwd"
+    export NSS_WRAPPER_GROUP="$NSS_WRAPPER_DIR/group"
+    # Find libnss_wrapper.so (path varies by distro)
+    for wrapper_path in /usr/lib/x86_64-linux-gnu/libnss_wrapper.so /usr/lib/libnss_wrapper.so /usr/lib64/libnss_wrapper.so; do
+        if [ -f "$wrapper_path" ]; then
+            export LD_PRELOAD="$wrapper_path"
+            break
+        fi
+    done
+fi
+
 # Start Cinnamon with dbus-run-session wrapper
 # Use bash -c to set theme defaults before starting cinnamon-session
 exec dbus-run-session -- bash -c '

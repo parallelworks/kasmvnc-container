@@ -41,12 +41,34 @@ if [ -z "$BUILD_MODE" ]; then
     fi
 fi
 
+# Force rebuild even if sqsh exists (set FORCE=true to override)
+FORCE="${FORCE:-false}"
+
 echo "=== Enroot Container Builder ==="
 echo "Build mode: ${BUILD_MODE}"
 echo "Output file: ${SQSH_FILE}"
 echo ""
 
-# Remove existing squashfs file if present
+# Check if sqsh file already exists
+if [ -f "${SQSH_FILE}" ] && [ "$FORCE" != "true" ]; then
+    echo "=== Existing container found ==="
+    echo "File: ${SQSH_FILE}"
+    echo "Size: $(du -h "${SQSH_FILE}" | cut -f1)"
+    echo "Date: $(stat -c %y "${SQSH_FILE}" 2>/dev/null || stat -f %Sm "${SQSH_FILE}" 2>/dev/null)"
+    echo ""
+    echo "Skipping build. To force rebuild, run: FORCE=true ./Enroot.sh"
+    echo ""
+    echo "=== Enroot Runtime Examples ==="
+    echo ""
+    echo "# Create container instance:"
+    echo "  enroot create --name ${IMAGE_NAME} ${SQSH_FILE}"
+    echo ""
+    echo "# Basic run:"
+    echo "  enroot start ${IMAGE_NAME}"
+    exit 0
+fi
+
+# Remove existing squashfs file if force rebuild
 if [ -f "${SQSH_FILE}" ]; then
     echo "Removing existing ${SQSH_FILE}..."
     rm -f "${SQSH_FILE}"

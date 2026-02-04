@@ -14,9 +14,14 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 
 ## Quick Start
 
-**Build:**
+**Build (Singularity/Apptainer):**
 ```bash
 ./Singularity.sh
+```
+
+**Build (Enroot):**
+```bash
+./Enroot.sh
 ```
 
 **Run (basic):**

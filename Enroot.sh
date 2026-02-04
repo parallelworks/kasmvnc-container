@@ -24,8 +24,9 @@ IMAGE_TAG="${IMAGE_TAG:-latest}"
 SQSH_FILE="${SQSH_FILE:-${IMAGE_NAME}.sqsh}"
 
 # Docker registry for pulling pre-built images (used in registry mode)
-# Format: registry/namespace/image (without tag)
-DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc}"
+# Format: namespace/image for Docker Hub, or registry/namespace/image for others
+# Note: For Docker Hub, do NOT include "docker.io/" prefix - Enroot doesn't want it
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-parallelworks/kasmvnc}"
 
 # Build mode: "local" (build with Docker) or "registry" (pull from registry)
 # If not set, auto-detect based on Docker availability
@@ -66,7 +67,9 @@ if [ "$BUILD_MODE" = "local" ]; then
 
 elif [ "$BUILD_MODE" = "registry" ]; then
     # Registry mode: Pull directly from Docker registry
-    REGISTRY_IMAGE="${DOCKER_REGISTRY}:${IMAGE_TAG}"
+    # Strip docker.io/ prefix if present - Enroot doesn't want it for Docker Hub
+    ENROOT_REGISTRY="${DOCKER_REGISTRY#docker.io/}"
+    REGISTRY_IMAGE="${ENROOT_REGISTRY}:${IMAGE_TAG}"
     echo "=== Pulling from Docker registry ==="
     echo "Registry image: ${REGISTRY_IMAGE}"
     echo ""

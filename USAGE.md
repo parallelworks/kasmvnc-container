@@ -233,7 +233,7 @@ IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BUILD_MODE` | auto-detect | `local` (build with Docker) or `registry` (pull from registry) |
-| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc` | Registry image path for registry mode |
+| `DOCKER_REGISTRY` | `parallelworks/kasmvnc` | Registry image path (no `docker.io/` for Docker Hub) |
 | `IMAGE_NAME` | `kasmvnc` | Local image name / output prefix |
 | `IMAGE_TAG` | `latest` | Image tag |
 | `SQSH_FILE` | `${IMAGE_NAME}.sqsh` | Output squashfs filename |

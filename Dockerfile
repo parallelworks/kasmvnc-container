@@ -12,6 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     sudo nano emacs vim screen telnet iputils-ping curl wget unzip git-core \
     python3-pip python3-venv \
+    libnss-wrapper \
     && apt-get clean
 
 # Change APT user to allow some container runtimes properly work (i.e. Podman)

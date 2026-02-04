@@ -139,6 +139,10 @@ gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/nu
 gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/desktop-base/futureprototype-theme/wallpaper/contents/images/1920x1080.svg" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
+
+# Pin Firefox and Terminal to panel (add panel-launchers applet)
+gsettings set org.cinnamon favorite-apps "[\x27firefox.desktop\x27, \x27org.gnome.Terminal.desktop\x27, \x27nemo.desktop\x27]" 2>/dev/null || true
+gsettings set org.cinnamon enabled-applets "[\x27panel1:left:0:menu@cinnamon.org:0\x27, \x27panel1:left:1:panel-launchers@cinnamon.org:1\x27, \x27panel1:left:2:separator@cinnamon.org:2\x27, \x27panel1:left:3:grouped-window-list@cinnamon.org:3\x27, \x27panel1:right:0:systray@cinnamon.org:4\x27, \x27panel1:right:1:xapp-status@cinnamon.org:5\x27, \x27panel1:right:2:notifications@cinnamon.org:6\x27, \x27panel1:right:3:removable-drives@cinnamon.org:7\x27, \x27panel1:right:4:network@cinnamon.org:8\x27, \x27panel1:right:5:sound@cinnamon.org:9\x27, \x27panel1:right:6:power@cinnamon.org:10\x27, \x27panel1:right:7:calendar@cinnamon.org:11\x27]" 2>/dev/null || true
 # Start Cinnamon
 exec cinnamon-session
 '

@@ -256,8 +256,8 @@ if ! getent passwd $(id -u) > /dev/null 2>&1; then
     done
 fi
 
-# Start Cinnamon with dbus-run-session wrapper
-# Use bash -c to set theme defaults before starting cinnamon-session
+# Start desktop with dbus-run-session wrapper
+# Use bash -c to set theme defaults and try multiple desktop options
 exec dbus-run-session -- bash -c '
 # Set default theme and background (Adapta-Nokto dark theme)
 gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
@@ -270,8 +270,38 @@ gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null
 # Pin Firefox and Terminal to panel (add panel-launchers applet)
 gsettings set org.cinnamon favorite-apps "[\x27firefox.desktop\x27, \x27org.gnome.Terminal.desktop\x27, \x27nemo.desktop\x27]" 2>/dev/null || true
 gsettings set org.cinnamon enabled-applets "[\x27panel1:left:0:menu@cinnamon.org:0\x27, \x27panel1:left:1:panel-launchers@cinnamon.org:1\x27, \x27panel1:left:2:separator@cinnamon.org:2\x27, \x27panel1:left:3:grouped-window-list@cinnamon.org:3\x27, \x27panel1:right:0:systray@cinnamon.org:4\x27, \x27panel1:right:1:xapp-status@cinnamon.org:5\x27, \x27panel1:right:2:notifications@cinnamon.org:6\x27, \x27panel1:right:3:removable-drives@cinnamon.org:7\x27, \x27panel1:right:4:network@cinnamon.org:8\x27, \x27panel1:right:5:sound@cinnamon.org:9\x27, \x27panel1:right:6:power@cinnamon.org:10\x27, \x27panel1:right:7:calendar@cinnamon.org:11\x27]" 2>/dev/null || true
-# Start Cinnamon
-exec cinnamon-session
+
+# Try cinnamon-session first (works with systemd/full dbus)
+# If that fails, try cinnamon directly (window manager only)
+# If that fails, fall back to basic xterm
+echo "[Desktop] Trying cinnamon-session..."
+cinnamon-session 2>/dev/null &
+CINNAMON_PID=$!
+sleep 3
+
+if kill -0 $CINNAMON_PID 2>/dev/null; then
+    echo "[Desktop] cinnamon-session started successfully"
+    wait $CINNAMON_PID
+else
+    echo "[Desktop] cinnamon-session failed, trying cinnamon directly..."
+    # Start panel and window manager separately
+    cinnamon --replace 2>/dev/null &
+    CINNAMON_PID=$!
+    sleep 2
+
+    if kill -0 $CINNAMON_PID 2>/dev/null; then
+        echo "[Desktop] cinnamon window manager started"
+        # Also start nemo for desktop icons
+        nemo-desktop 2>/dev/null &
+        wait $CINNAMON_PID
+    else
+        echo "[Desktop] cinnamon failed, falling back to basic desktop..."
+        # Fallback: just run xterm so user has something
+        xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
+        # Keep session alive
+        while true; do sleep 60; done
+    fi
+fi
 '
 EOF
 chmod +x "$HOME/.vnc/xstartup"

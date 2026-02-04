@@ -172,13 +172,38 @@ Enroot is NVIDIA's HPC container runtime, optimized for unprivileged container e
 
 ### Building
 
+The build script supports two modes and auto-detects which to use based on Docker availability:
+
+**Local mode** (requires Docker):
 ```bash
-# Build Docker image and convert to Enroot squashfs
+# Build Docker image locally and convert to Enroot squashfs
 ./Enroot.sh
 
-# Or with custom image name/tag
+# Or explicitly force local mode
+BUILD_MODE=local ./Enroot.sh
+```
+
+**Registry mode** (no Docker required):
+```bash
+# Pull pre-built image directly from Docker registry
+BUILD_MODE=registry ./Enroot.sh
+
+# Or from a custom registry
+DOCKER_REGISTRY=myregistry.io/myorg/kasmvnc ./Enroot.sh
+```
+
+**Custom image name/tag:**
+```bash
 IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
 ```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BUILD_MODE` | auto-detect | `local` (build with Docker) or `registry` (pull from registry) |
+| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc-container` | Registry image path for registry mode |
+| `IMAGE_NAME` | `kasmvnc` | Local image name / output prefix |
+| `IMAGE_TAG` | `latest` | Image tag |
+| `SQSH_FILE` | `${IMAGE_NAME}.sqsh` | Output squashfs filename |
 
 ### Running
 

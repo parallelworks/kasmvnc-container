@@ -111,12 +111,24 @@ KASM_WEBSOCKET_HOST="${KASM_HOST}${WEBSOCKET_PATH}"
 
 echo "[INFO] WebSocket host: $KASM_WEBSOCKET_HOST"
 
+# Generate self-signed SSL cert (KasmVNC requires cert files even when SSL is disabled on some systems)
+SSL_DIR="$HOME/.vnc/ssl"
+mkdir -p "$SSL_DIR"
+if [ ! -f "$SSL_DIR/self.pem" ]; then
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
+        -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>/dev/null
+    echo "[INFO] Generated self-signed SSL certificate"
+fi
+
 # Generate kasmvnc.yaml for reverse proxy mode
 cat > "$HOME/.vnc/kasmvnc.yaml" << EOF
 network:
   interface: 127.0.0.1
   ssl:
     require_ssl: false
+    pem_certificate: $SSL_DIR/self.pem
+    pem_key: $SSL_DIR/self.pem
   udp:
     public_ip: 127.0.0.1
 ${KASMVNC_YAML_EXTRA}

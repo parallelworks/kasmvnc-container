@@ -74,7 +74,7 @@ echo "[INFO] Nginx port: $NGINX_PORT (external)"
 echo "[INFO] Base path: $BASE_PATH"
 
 # Aggressive cleanup of ALL stale VNC sessions for this user
-echo "[INFO] Cleaning up stale VNC sessions..."
+echo "[INFO] Cleaning up stale VNC sessions and config files..."
 
 # Kill all existing vncserver processes for this user
 pkill -u $(id -u) -f "Xvnc" 2>/dev/null || true
@@ -86,13 +86,22 @@ rm -f /tmp/.X11-unix/X* 2>/dev/null || true
 rm -f "$HOME/.vnc"/*.pid 2>/dev/null || true
 rm -f "$HOME/.vnc"/*.log 2>/dev/null || true
 
+# Clean up old VNC config files that might conflict with our setup
+# These will be regenerated fresh each time to ensure consistent behavior
+rm -f "$HOME/.vnc/kasmvnc.yaml" 2>/dev/null || true
+rm -f "$HOME/.vnc/xstartup" 2>/dev/null || true
+rm -f "$HOME/.vnc/xstartup.turbovnc" 2>/dev/null || true
+rm -f "$HOME/.vnc/passwd" 2>/dev/null || true
+rm -f "$HOME/.kasmpasswd" 2>/dev/null || true
+rm -rf "$HOME/.vnc/ssl" 2>/dev/null || true
+
 # Also try the vncserver -kill command for our display
 vncserver -kill :${DESKTOP_NUMBER} 2>/dev/null || true
 
 # Give processes time to die
 sleep 1
 
-# Ensure .vnc directory exists
+# Ensure .vnc directory exists (fresh)
 mkdir -p "$HOME/.vnc"
 
 # Get the external hostname for WebSocket connection

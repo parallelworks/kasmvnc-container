@@ -91,6 +91,7 @@ rm -f "$HOME/.vnc"/*.log 2>/dev/null || true
 rm -f "$HOME/.vnc/kasmvnc.yaml" 2>/dev/null || true
 rm -f "$HOME/.vnc/xstartup" 2>/dev/null || true
 rm -f "$HOME/.vnc/xstartup.turbovnc" 2>/dev/null || true
+rm -f "$HOME/.vnc/kasm-xstartup" 2>/dev/null || true
 rm -f "$HOME/.vnc/passwd" 2>/dev/null || true
 rm -f "$HOME/.kasmpasswd" 2>/dev/null || true
 rm -rf "$HOME/.vnc/ssl" 2>/dev/null || true

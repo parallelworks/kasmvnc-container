@@ -156,12 +156,45 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 
 ## Docker Usage
 
-```bash
-# Build
-docker build -t kasmvnc .
+### Building
 
-# Run
+```bash
+# Build only
+./Docker.sh
+
+# Build and push to default registry (docker.io/parallelworks/kasmvnc)
+./Docker.sh --push
+
+# Build and push with specific tag
+./Docker.sh --push --tag v1.0.0
+
+# Build and push to custom registry
+./Docker.sh --push --registry ghcr.io/myorg/kasmvnc
+```
+
+| Option | Description |
+|--------|-------------|
+| `--push` | Push image to registry after building |
+| `--tag TAG` | Set image tag (default: latest) |
+| `--registry URL` | Set registry path (default: docker.io/parallelworks/kasmvnc) |
+| `--no-latest` | Don't push :latest tag (only push specified tag) |
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IMAGE_NAME` | `kasmvnc` | Local image name |
+| `IMAGE_TAG` | `latest` | Image tag |
+| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc` | Registry path |
+| `PUSH` | `false` | Set to `true` to push |
+| `PUSH_LATEST` | `true` | Also push :latest when pushing versioned tag |
+
+### Running
+
+```bash
+# Run locally
 docker run -p 8080:8080 kasmvnc
+
+# Run with custom base path
+docker run -p 8080:8080 -e BASE_PATH=/desktop/ kasmvnc
 
 # Access at http://localhost:8080/
 ```
@@ -200,7 +233,7 @@ IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BUILD_MODE` | auto-detect | `local` (build with Docker) or `registry` (pull from registry) |
-| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc-container` | Registry image path for registry mode |
+| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc` | Registry image path for registry mode |
 | `IMAGE_NAME` | `kasmvnc` | Local image name / output prefix |
 | `IMAGE_TAG` | `latest` | Image tag |
 | `SQSH_FILE` | `${IMAGE_NAME}.sqsh` | Output squashfs filename |
@@ -285,6 +318,7 @@ singularity exec kasmvnc.sif id
 ```
 .
 ├── Dockerfile              # Container definition
+├── Docker.sh               # Build script (Docker) with registry push
 ├── Singularity.sh          # Build script (Singularity/Apptainer)
 ├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide

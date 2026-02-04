@@ -137,8 +137,12 @@ gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.interface gtk-theme "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/desktop-base/futureprototype-theme/wallpaper/contents/images/1920x1080.svg" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/tealized.jpg" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
+
+# Pin Firefox and Terminal to panel (add panel-launchers applet)
+gsettings set org.cinnamon favorite-apps "[\x27firefox.desktop\x27, \x27org.gnome.Terminal.desktop\x27, \x27nemo.desktop\x27]" 2>/dev/null || true
+gsettings set org.cinnamon enabled-applets "[\x27panel1:left:0:menu@cinnamon.org:0\x27, \x27panel1:left:1:panel-launchers@cinnamon.org:1\x27, \x27panel1:left:2:separator@cinnamon.org:2\x27, \x27panel1:left:3:grouped-window-list@cinnamon.org:3\x27, \x27panel1:right:0:systray@cinnamon.org:4\x27, \x27panel1:right:1:xapp-status@cinnamon.org:5\x27, \x27panel1:right:2:notifications@cinnamon.org:6\x27, \x27panel1:right:3:removable-drives@cinnamon.org:7\x27, \x27panel1:right:4:network@cinnamon.org:8\x27, \x27panel1:right:5:sound@cinnamon.org:9\x27, \x27panel1:right:6:power@cinnamon.org:10\x27, \x27panel1:right:7:calendar@cinnamon.org:11\x27]" 2>/dev/null || true
 # Start Cinnamon
 exec cinnamon-session
 '
@@ -171,6 +175,18 @@ mkdir -p /tmp/nginx_client_body /tmp/nginx_proxy /tmp/nginx_fastcgi /tmp/nginx_u
 
 # Generate Nginx config from template with environment variable substitution
 envsubst '${BASE_PATH} ${KASM_PORT} ${NGINX_PORT}' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
+
+# Add redirect from BASE_PATH (no trailing slash) to BASE_PATH/ (with slash)
+# This allows URLs like /me/session/user/kasmpath to work without requiring trailing slash
+if [ "$BASE_PATH" != "/" ]; then
+    sed -i "/location ${BASE_PATH//\//\\/} {/i\\
+        # Redirect exact path to path with trailing slash\\
+        location = ${BASE_PATH} {\\
+            return 301 \$scheme://\$host\$request_uri/;\\
+        }\\
+" /tmp/nginx.conf
+    echo "[INFO] Added redirect for ${BASE_PATH} -> ${BASE_PATH}/"
+fi
 
 # Start Kasm VNC (explicitly using our custom xstartup for Cinnamon)
 echo "[INFO] Starting Kasm VNC server on display :${DESKTOP_NUMBER}..."

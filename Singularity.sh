@@ -12,6 +12,27 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Check for singularity, try module load if not found
+if ! command -v singularity &> /dev/null; then
+    echo "Singularity not found, trying 'module load singularity'..."
+    if command -v module &> /dev/null; then
+        module load singularity 2>/dev/null || module load apptainer 2>/dev/null || true
+    fi
+    # Check again
+    if ! command -v singularity &> /dev/null && ! command -v apptainer &> /dev/null; then
+        echo "ERROR: Singularity/Apptainer not found. Please install or load the module."
+        echo "Try: module load singularity"
+        echo "  or: module load apptainer"
+        exit 1
+    fi
+fi
+
+# Use apptainer if singularity isn't available (they're compatible)
+if ! command -v singularity &> /dev/null && command -v apptainer &> /dev/null; then
+    alias singularity=apptainer
+    shopt -s expand_aliases
+fi
+
 # Configuration
 IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"

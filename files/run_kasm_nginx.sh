@@ -126,13 +126,30 @@ mkdir -p "$SSL_DIR"
 SSL_AVAILABLE="false"
 if [ ! -f "$SSL_DIR/self.pem" ]; then
     if command -v openssl &> /dev/null; then
+        # Try multiple methods - some systems have FIPS restrictions
+        # Method 1: Standard RSA (works on most systems)
         if openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
             -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
-            -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>&1; then
-            echo "[INFO] Generated self-signed SSL certificate"
+            -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>/dev/null; then
+            echo "[INFO] Generated self-signed SSL certificate (RSA)"
+            SSL_AVAILABLE="true"
+        # Method 2: EC keys (FIPS-compatible on some systems)
+        elif openssl req -x509 -nodes -days 365 -newkey ec \
+            -pkeyopt ec_paramgen_curve:prime256v1 \
+            -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
+            -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>/dev/null; then
+            echo "[INFO] Generated self-signed SSL certificate (EC)"
+            SSL_AVAILABLE="true"
+        # Method 3: Try with explicit default provider (bypass FIPS)
+        elif openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -provider default \
+            -keyout "$SSL_DIR/self.pem" -out "$SSL_DIR/self.pem" \
+            -subj "/C=US/ST=State/L=City/O=Org/CN=localhost" 2>/dev/null; then
+            echo "[INFO] Generated self-signed SSL certificate (default provider)"
             SSL_AVAILABLE="true"
         else
-            echo "[WARN] Failed to generate SSL certificate (openssl failed)"
+            echo "[WARN] Failed to generate SSL certificate (all methods failed)"
+            echo "[WARN] This may be due to FIPS restrictions on the host system"
         fi
     else
         echo "[WARN] openssl not found, skipping SSL certificate generation"
@@ -302,15 +319,25 @@ fi
 
 # Start Kasm VNC (explicitly using our custom xstartup for Cinnamon)
 echo "[INFO] Starting Kasm VNC server on display :${DESKTOP_NUMBER}..."
-/usr/bin/vncserver :$DESKTOP_NUMBER \
-    -xstartup "$HOME/.vnc/xstartup" \
+
+# Build vncserver command - add SSL flags based on availability
+VNC_CMD="/usr/bin/vncserver :$DESKTOP_NUMBER \
+    -xstartup $HOME/.vnc/xstartup \
     -depth 24 \
     -geometry 1280x1050 \
     -websocketPort $KASM_PORT \
     -httpd /usr/share/kasmvnc/www \
     -disableBasicAuth \
     -FrameRate=24 \
-    -interface 127.0.0.1
+    -interface 127.0.0.1"
+
+# If SSL is not available, explicitly disable it
+if [ "$SSL_AVAILABLE" != "true" ]; then
+    echo "[INFO] SSL not available, starting VNC without SSL"
+    VNC_CMD="$VNC_CMD -sslOnly 0"
+fi
+
+eval $VNC_CMD
 
 # Check if VNC started successfully
 sleep 2

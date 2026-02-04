@@ -7,9 +7,13 @@
 # - GPU workloads with native NVIDIA support
 # - Slurm integration via pyxis plugin
 #
-# Modes:
+# Build Modes:
 #   local    - Build Docker image locally, then convert to squashfs (requires Docker)
 #   registry - Pull image directly from Docker registry (no Docker required)
+#
+# Shared Mode:
+#   Set SHARED_PATH to install to a shared location for all users
+#   Example: SHARED_PATH=/shared/containers ./Enroot.sh
 #
 # The script auto-detects Docker availability and falls back to registry mode if needed.
 #
@@ -21,7 +25,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Configuration
 IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-SQSH_FILE="${SQSH_FILE:-${IMAGE_NAME}.sqsh}"
+
+# Shared installation path (optional)
+# Set SHARED_PATH to install to a shared location accessible by all users
+SHARED_PATH="${SHARED_PATH:-}"
+
+# Determine output file location
+if [ -n "$SHARED_PATH" ]; then
+    # Shared mode: install to shared location
+    mkdir -p "$SHARED_PATH" 2>/dev/null || true
+    SQSH_FILE="${SHARED_PATH}/${IMAGE_NAME}.sqsh"
+else
+    SQSH_FILE="${SQSH_FILE:-${IMAGE_NAME}.sqsh}"
+fi
 
 # Docker registry for pulling pre-built images (used in registry mode)
 # Format: namespace/image for Docker Hub, or registry/namespace/image for others
@@ -115,36 +131,71 @@ fi
 
 echo ""
 echo "=== Build complete ==="
-echo "Enroot container: ${SQSH_FILE}"
+echo "Enroot container: ${SQSH_FILE_ABS}"
 echo ""
-echo "=== Enroot Runtime Examples ==="
-echo ""
-echo "# Create container instance:"
-echo "  enroot create --name ${IMAGE_NAME} ${SQSH_FILE}"
-echo ""
-echo "# Basic run:"
-echo "  enroot start ${IMAGE_NAME}"
-echo ""
-echo "# With GPU support:"
-echo "  enroot start --env NVIDIA_VISIBLE_DEVICES=all ${IMAGE_NAME}"
-echo ""
-echo "# With bind mounts and custom BASE_PATH:"
-echo "  enroot start \\"
-echo "      --mount /etc/passwd:/etc/passwd:ro \\"
-echo "      --mount /etc/group:/etc/group:ro \\"
-echo "      --mount /home:/home \\"
-echo "      --env BASE_PATH=/me/session/user/desktop/ \\"
-echo "      --env NGINX_PORT=8080 \\"
-echo "      ${IMAGE_NAME}"
-echo ""
-echo "# With Slurm (via pyxis plugin):"
-echo "  srun --container-image=${SQSH_FILE} \\"
-echo "       --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \\"
-echo "       --container-env=BASE_PATH=/me/session/user/desktop/ \\"
-echo "       /usr/local/bin/run_kasm_nginx.sh"
-echo ""
-echo "=== Notes ==="
-echo "- Enroot runs as your UID/GID by default (like Singularity)"
-echo "- Use --rw flag if you need a writable container"
-echo "- For Slurm integration, ensure pyxis plugin is installed"
-echo "- GPU support requires nvidia-container-cli"
+
+if [ -n "$SHARED_PATH" ]; then
+    echo "=== SHARED INSTALLATION ==="
+    echo "Container installed to shared location: ${SQSH_FILE_ABS}"
+    echo ""
+    echo "Users can run directly from the shared sqsh file without creating their own copy."
+    echo ""
+    echo "=== User Instructions (share with users) ==="
+    echo ""
+    echo "# Run directly from shared container (no setup needed):"
+    echo "  enroot start --rw ${SQSH_FILE_ABS} /bin/bash"
+    echo ""
+    echo "# Run with desktop environment:"
+    echo "  enroot start --rw \\"
+    echo "      -e HOME=/tmp/\$USER-kasmhome \\"
+    echo "      -e BASE_PATH=/ \\"
+    echo "      -e NGINX_PORT=8080 \\"
+    echo "      ${SQSH_FILE_ABS} /usr/local/bin/run_kasm_nginx.sh"
+    echo ""
+    echo "# With Slurm (via pyxis plugin):"
+    echo "  srun --container-image=${SQSH_FILE_ABS} \\"
+    echo "       --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \\"
+    echo "       --container-env=BASE_PATH=/me/session/\$USER/desktop/ \\"
+    echo "       /usr/local/bin/run_kasm_nginx.sh"
+    echo ""
+    echo "=== Notes ==="
+    echo "- Users do NOT need to run enroot import or enroot create"
+    echo "- Each user runs from the same shared sqsh file"
+    echo "- User data is isolated via HOME=/tmp/\$USER-kasmhome"
+else
+    echo "=== Enroot Runtime Examples ==="
+    echo ""
+    echo "# Create container instance:"
+    echo "  enroot create --name ${IMAGE_NAME} ${SQSH_FILE}"
+    echo ""
+    echo "# Basic run:"
+    echo "  enroot start ${IMAGE_NAME}"
+    echo ""
+    echo "# With GPU support:"
+    echo "  enroot start --env NVIDIA_VISIBLE_DEVICES=all ${IMAGE_NAME}"
+    echo ""
+    echo "# With bind mounts and custom BASE_PATH:"
+    echo "  enroot start \\"
+    echo "      --mount /etc/passwd:/etc/passwd:ro \\"
+    echo "      --mount /etc/group:/etc/group:ro \\"
+    echo "      --mount /home:/home \\"
+    echo "      --env BASE_PATH=/me/session/user/desktop/ \\"
+    echo "      --env NGINX_PORT=8080 \\"
+    echo "      ${IMAGE_NAME}"
+    echo ""
+    echo "# With Slurm (via pyxis plugin):"
+    echo "  srun --container-image=${SQSH_FILE_ABS} \\"
+    echo "       --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \\"
+    echo "       --container-env=BASE_PATH=/me/session/user/desktop/ \\"
+    echo "       /usr/local/bin/run_kasm_nginx.sh"
+    echo ""
+    echo "=== Notes ==="
+    echo "- Enroot runs as your UID/GID by default (like Singularity)"
+    echo "- Use --rw flag if you need a writable container"
+    echo "- For Slurm integration, ensure pyxis plugin is installed"
+    echo "- GPU support requires nvidia-container-cli"
+    echo ""
+    echo "=== Shared Installation ==="
+    echo "To install for all users, set SHARED_PATH:"
+    echo "  SHARED_PATH=/shared/containers ./Enroot.sh"
+fi

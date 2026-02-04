@@ -41,6 +41,7 @@ RUN mkdir /home/metauser/.logs && chown metauser:metauser /home/metauser/.logs
 #------------------------
 
 # Install X11, VNC dependencies, and Cinnamon desktop
+# Also install openbox + tint2 as lightweight fallback for containers without systemd
 RUN apt-get update && apt-get install -y \
     xvfb \
     xterm \
@@ -65,6 +66,9 @@ RUN apt-get update && apt-get install -y \
     htop \
     openssh-client \
     software-properties-common \
+    openbox \
+    tint2 \
+    feh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

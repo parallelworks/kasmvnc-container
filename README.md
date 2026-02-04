@@ -14,6 +14,14 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 
 ## Quick Start
 
+**Build (Docker):**
+```bash
+./Docker.sh
+
+# Build and push to registry
+./Docker.sh --push
+```
+
 **Build (Singularity/Apptainer):**
 ```bash
 ./Singularity.sh

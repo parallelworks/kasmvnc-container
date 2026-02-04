@@ -25,7 +25,7 @@ SQSH_FILE="${SQSH_FILE:-${IMAGE_NAME}.sqsh}"
 
 # Docker registry for pulling pre-built images (used in registry mode)
 # Format: registry/namespace/image (without tag)
-DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc-container}"
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc}"
 
 # Build mode: "local" (build with Docker) or "registry" (pull from registry)
 # If not set, auto-detect based on Docker availability

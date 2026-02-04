@@ -295,11 +295,34 @@ else
         nemo-desktop 2>/dev/null &
         wait $CINNAMON_PID
     else
-        echo "[Desktop] cinnamon failed, falling back to basic desktop..."
-        # Fallback: just run xterm so user has something
-        xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
-        # Keep session alive
-        while true; do sleep 60; done
+        echo "[Desktop] cinnamon failed, trying openbox (lightweight fallback)..."
+        # Openbox fallback - works without system dbus
+
+        # Set background
+        if [ -f /usr/share/backgrounds/tealized.jpg ]; then
+            feh --bg-scale /usr/share/backgrounds/tealized.jpg 2>/dev/null &
+        fi
+
+        # Start tint2 panel
+        tint2 2>/dev/null &
+
+        # Start openbox window manager
+        openbox 2>/dev/null &
+        OPENBOX_PID=$!
+        sleep 2
+
+        if kill -0 $OPENBOX_PID 2>/dev/null; then
+            echo "[Desktop] openbox started successfully"
+            # Start a terminal for user convenience
+            gnome-terminal 2>/dev/null || xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
+            # Start file manager
+            nemo 2>/dev/null &
+            wait $OPENBOX_PID
+        else
+            echo "[Desktop] openbox failed, falling back to xterm only..."
+            xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
+            while true; do sleep 60; done
+        fi
     fi
 fi
 '

@@ -8,7 +8,7 @@
 # Environment Variables:
 #   IMAGE_NAME     - Local image name (default: kasmvnc)
 #   IMAGE_TAG      - Image tag (default: latest)
-#   DOCKER_REGISTRY - Registry path to push to (e.g., docker.io/parallelworks/kasmvnc-container)
+#   DOCKER_REGISTRY - Registry path to push to (e.g., docker.io/parallelworks/kasmvnc)
 #   PUSH           - Set to "true" to push after building (default: false)
 #   PUSH_LATEST    - Set to "true" to also push :latest tag (default: true when PUSH=true)
 #

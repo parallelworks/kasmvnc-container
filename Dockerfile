@@ -41,7 +41,8 @@ RUN mkdir /home/metauser/.logs && chown metauser:metauser /home/metauser/.logs
 #------------------------
 
 # Install X11, VNC dependencies, and Cinnamon desktop
-# Also install openbox + tint2 as lightweight fallback for containers without systemd
+# Also install XFCE as fallback for containers without systemd (Enroot, etc.)
+# And openbox as minimal fallback
 RUN apt-get update && apt-get install -y \
     xvfb \
     xterm \
@@ -66,6 +67,11 @@ RUN apt-get update && apt-get install -y \
     htop \
     openssh-client \
     software-properties-common \
+    xfce4 \
+    xfce4-terminal \
+    xfce4-whiskermenu-plugin \
+    thunar \
+    mousepad \
     openbox \
     tint2 \
     feh \

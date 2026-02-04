@@ -295,33 +295,54 @@ else
         nemo-desktop 2>/dev/null &
         wait $CINNAMON_PID
     else
-        echo "[Desktop] cinnamon failed, trying openbox (lightweight fallback)..."
-        # Openbox fallback - works without system dbus
+        echo "[Desktop] cinnamon failed, trying XFCE (works without systemd)..."
+        # XFCE fallback - full desktop that works without system dbus
 
-        # Set background
+        # Try to set XFCE theme to dark
+        xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" 2>/dev/null || true
+        xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
+
+        # Set background for XFCE
         if [ -f /usr/share/backgrounds/tealized.jpg ]; then
-            feh --bg-scale /usr/share/backgrounds/tealized.jpg 2>/dev/null &
+            xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s /usr/share/backgrounds/tealized.jpg 2>/dev/null || true
         fi
 
-        # Start tint2 panel
-        tint2 2>/dev/null &
+        xfce4-session 2>/dev/null &
+        XFCE_PID=$!
+        sleep 3
 
-        # Start openbox window manager
-        openbox 2>/dev/null &
-        OPENBOX_PID=$!
-        sleep 2
-
-        if kill -0 $OPENBOX_PID 2>/dev/null; then
-            echo "[Desktop] openbox started successfully"
-            # Start a terminal for user convenience
-            gnome-terminal 2>/dev/null || xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
-            # Start file manager
-            nemo 2>/dev/null &
-            wait $OPENBOX_PID
+        if kill -0 $XFCE_PID 2>/dev/null; then
+            echo "[Desktop] XFCE started successfully"
+            wait $XFCE_PID
         else
-            echo "[Desktop] openbox failed, falling back to xterm only..."
-            xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
-            while true; do sleep 60; done
+            echo "[Desktop] XFCE failed, trying openbox (minimal fallback)..."
+            # Openbox fallback - works without system dbus
+
+            # Set background
+            if [ -f /usr/share/backgrounds/tealized.jpg ]; then
+                feh --bg-scale /usr/share/backgrounds/tealized.jpg 2>/dev/null &
+            fi
+
+            # Start tint2 panel
+            tint2 2>/dev/null &
+
+            # Start openbox window manager
+            openbox 2>/dev/null &
+            OPENBOX_PID=$!
+            sleep 2
+
+            if kill -0 $OPENBOX_PID 2>/dev/null; then
+                echo "[Desktop] openbox started successfully"
+                # Start a terminal for user convenience
+                xfce4-terminal 2>/dev/null || gnome-terminal 2>/dev/null || xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
+                # Start file manager
+                thunar 2>/dev/null || nemo 2>/dev/null &
+                wait $OPENBOX_PID
+            else
+                echo "[Desktop] openbox failed, falling back to xterm only..."
+                xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
+                while true; do sleep 60; done
+            fi
         fi
     fi
 fi

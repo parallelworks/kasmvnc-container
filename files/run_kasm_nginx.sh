@@ -176,6 +176,18 @@ mkdir -p /tmp/nginx_client_body /tmp/nginx_proxy /tmp/nginx_fastcgi /tmp/nginx_u
 # Generate Nginx config from template with environment variable substitution
 envsubst '${BASE_PATH} ${KASM_PORT} ${NGINX_PORT}' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
 
+# Add redirect from BASE_PATH (no trailing slash) to BASE_PATH/ (with slash)
+# This allows URLs like /me/session/user/kasmpath to work without requiring trailing slash
+if [ "$BASE_PATH" != "/" ]; then
+    sed -i "/location ${BASE_PATH//\//\\/} {/i\\
+        # Redirect exact path to path with trailing slash\\
+        location = ${BASE_PATH} {\\
+            return 301 \$scheme://\$host\$request_uri/;\\
+        }\\
+" /tmp/nginx.conf
+    echo "[INFO] Added redirect for ${BASE_PATH} -> ${BASE_PATH}/"
+fi
+
 # Start Kasm VNC (explicitly using our custom xstartup for Cinnamon)
 echo "[INFO] Starting Kasm VNC server on display :${DESKTOP_NUMBER}..."
 /usr/bin/vncserver :$DESKTOP_NUMBER \

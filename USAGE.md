@@ -9,6 +9,7 @@
 - [Slurm Integration](#slurm-integration)
 - [GPU Support](#gpu-support)
 - [Docker Usage](#docker-usage)
+- [Enroot Usage](#enroot-usage)
 - [Troubleshooting](#troubleshooting)
 - [File Structure](#file-structure)
 
@@ -165,6 +166,58 @@ docker run -p 8080:8080 kasmvnc
 # Access at http://localhost:8080/
 ```
 
+## Enroot Usage
+
+Enroot is NVIDIA's HPC container runtime, optimized for unprivileged container execution, GPU workloads, and Slurm integration via the pyxis plugin.
+
+### Building
+
+```bash
+# Build Docker image and convert to Enroot squashfs
+./Enroot.sh
+
+# Or with custom image name/tag
+IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
+```
+
+### Running
+
+```bash
+# Create container instance
+enroot create --name kasmvnc kasmvnc.sqsh
+
+# Basic run
+enroot start kasmvnc
+
+# With GPU support
+enroot start --env NVIDIA_VISIBLE_DEVICES=all kasmvnc
+
+# With bind mounts and reverse proxy path
+enroot start \
+    --mount /etc/passwd:/etc/passwd:ro \
+    --mount /etc/group:/etc/group:ro \
+    --mount /home:/home \
+    --env BASE_PATH=/me/session/user/desktop/ \
+    --env NGINX_PORT=8080 \
+    kasmvnc
+```
+
+### Slurm Integration (via pyxis)
+
+```bash
+srun --container-image=kasmvnc.sqsh \
+     --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \
+     --container-env=BASE_PATH=/me/session/user/desktop/ \
+     /usr/local/bin/run_kasm_nginx.sh
+```
+
+### Notes
+
+- Enroot runs as your UID/GID by default (like Singularity)
+- Use `--rw` flag if you need a writable container
+- For Slurm integration, ensure pyxis plugin is installed
+- GPU support requires nvidia-container-cli
+
 ## Troubleshooting
 
 ### Black screen / Cinnamon not starting
@@ -207,7 +260,8 @@ singularity exec kasmvnc.sif id
 ```
 .
 ├── Dockerfile              # Container definition
-├── Singularity.sh          # Build script
+├── Singularity.sh          # Build script (Singularity/Apptainer)
+├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide
 ├── USAGE.md                # This file
 ├── LICENSE                 # MIT License
@@ -218,5 +272,7 @@ singularity exec kasmvnc.sif id
     ├── nginx.conf          # Nginx config template
     ├── xstartup            # VNC session startup
     ├── kasmvnc.yaml        # KasmVNC configuration
-    └── sudoers             # Sudo configuration
+    ├── sudoers             # Sudo configuration
+    └── backgrounds/        # Desktop backgrounds
+        └── tealized.jpg    # Default background
 ```

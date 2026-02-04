@@ -1,0 +1,47 @@
+#!/bin/bash
+# KasmVNC xstartup - Cinnamon Desktop
+
+# CRITICAL: Force XDG_RUNTIME_DIR to writable location (Singularity read-only fix)
+# Do NOT use conditional ${VAR:-default} - forcibly override any existing value
+export XDG_RUNTIME_DIR="/tmp/runtime-$(id -u)"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+
+# Also set ICEAUTHORITY to writable location (cinnamon-session requirement)
+export ICEAUTHORITY="$XDG_RUNTIME_DIR/ICEauthority"
+
+# Force shell to bash (Apptainer sets a weird default shell)
+export SHELL=/bin/bash
+
+# Force X11 backends (not Wayland)
+export XDG_SESSION_TYPE=x11
+export GDK_BACKEND=x11
+export CLUTTER_BACKEND=x11
+export QT_QPA_PLATFORM=xcb
+export MOZ_ENABLE_WAYLAND=0
+
+# Software rendering fallback (for compatibility)
+export LIBGL_ALWAYS_SOFTWARE=1
+
+# Desktop environment variables
+export XDG_CURRENT_DESKTOP=X-Cinnamon
+export DESKTOP_SESSION=cinnamon
+export XDG_CONFIG_DIRS=/etc/xdg
+export XDG_DATA_DIRS=/usr/share:/usr/local/share
+
+# Kill any stale Cinnamon processes
+killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
+
+# Start Cinnamon with dbus-run-session wrapper
+# Use bash -c to set theme defaults before starting cinnamon-session
+exec dbus-run-session -- bash -c '
+# Set default theme and background (Adapta-Nokto dark theme)
+gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.interface gtk-theme "Adapta-Nokto" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/desktop-base/futureprototype-theme/wallpaper/contents/images/1920x1080.svg" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
+# Start Cinnamon
+exec cinnamon-session
+'

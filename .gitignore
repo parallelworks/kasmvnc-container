@@ -1,0 +1,25 @@
+# Singularity/Apptainer build artifacts
+*.sif
+*_sandbox/
+
+# Logs
+*.log
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+

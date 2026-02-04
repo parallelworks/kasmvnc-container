@@ -24,15 +24,34 @@ export KASM_PORT
 if [ -n "$VNC_DISPLAY" ]; then
     DESKTOP_NUMBER="$VNC_DISPLAY"
 else
-    # Auto-find available display by checking /tmp/.X*-lock files
+    # Auto-find available display by checking lock files, sockets, and running processes
     DESKTOP_NUMBER=1
-    while [ -f "/tmp/.X${DESKTOP_NUMBER}-lock" ] || [ -S "/tmp/.X11-unix/X${DESKTOP_NUMBER}" ]; do
-        DESKTOP_NUMBER=$((DESKTOP_NUMBER + 1))
-        if [ $DESKTOP_NUMBER -gt 99 ]; then
-            echo "[ERROR] Could not find available display (tried :1 to :99)"
-            exit 1
+    while [ $DESKTOP_NUMBER -le 99 ]; do
+        DISPLAY_IN_USE=0
+
+        # Check lock file
+        [ -f "/tmp/.X${DESKTOP_NUMBER}-lock" ] && DISPLAY_IN_USE=1
+
+        # Check X11 socket
+        [ -S "/tmp/.X11-unix/X${DESKTOP_NUMBER}" ] && DISPLAY_IN_USE=1
+
+        # Check for running Xvnc process on this display
+        pgrep -f "Xvnc.*:${DESKTOP_NUMBER}\b" > /dev/null 2>&1 && DISPLAY_IN_USE=1
+
+        # Check for any X server on this display
+        pgrep -f "[X].*:${DESKTOP_NUMBER}\b" > /dev/null 2>&1 && DISPLAY_IN_USE=1
+
+        if [ $DISPLAY_IN_USE -eq 0 ]; then
+            break
         fi
+
+        DESKTOP_NUMBER=$((DESKTOP_NUMBER + 1))
     done
+
+    if [ $DESKTOP_NUMBER -gt 99 ]; then
+        echo "[ERROR] Could not find available display (tried :1 to :99)"
+        exit 1
+    fi
 fi
 
 # Set Nginx port (external)

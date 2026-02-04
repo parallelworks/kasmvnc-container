@@ -137,7 +137,7 @@ gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.interface gtk-theme "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/desktop-base/futureprototype-theme/wallpaper/contents/images/1920x1080.svg" 2>/dev/null || true
+gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/tealized.jpg" 2>/dev/null || true
 gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
 
 # Pin Firefox and Terminal to panel (add panel-launchers applet)

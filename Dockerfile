@@ -90,6 +90,9 @@ RUN cd /tmp && \
     unzip -q Adapta-Nokto.zip -d /usr/share/themes/ && \
     rm Adapta-Nokto.zip
 
+# Copy custom background
+COPY files/backgrounds/tealized.jpg /usr/share/backgrounds/tealized.jpg
+
 # Download and install KasmVNC 1.4.0 for Ubuntu 24.04 (noble)
 RUN cd /tmp && \
     wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_noble_1.4.0_amd64.deb && \

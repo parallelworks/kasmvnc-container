@@ -150,6 +150,9 @@ EOF
 chmod +x "$HOME/.vnc/xstartup"
 echo "[INFO] Generated xstartup for Cinnamon desktop"
 
+# Create marker file to skip KasmVNC's DE selection menu
+touch "$HOME/.vnc/.de-was-selected"
+
 # We must set a password even if KASM does not use it for user auth.
 # Use hashlib instead of deprecated crypt module for Python 3.13+ compatibility
 VNC_PW='placeholder'

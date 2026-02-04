@@ -9,6 +9,8 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 - Nginx reverse proxy with base path support
 - UID-aware for Singularity/Apptainer
 - Slurm submit host capable
+- GPU support (`--nv` flag)
+- Adapta-Nokto dark theme
 
 ## Quick Start
 
@@ -17,7 +19,7 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 ./Singularity.sh
 ```
 
-**Run:**
+**Run (basic):**
 ```bash
 singularity run \
     --bind /etc/passwd:/etc/passwd:ro \
@@ -25,7 +27,17 @@ singularity run \
     kasmvnc.sif
 ```
 
-**Access:** Open `http://<hostname>:8080/` in your browser.
+**Run (with GPU and reverse proxy path):**
+```bash
+singularity run \
+    --nv \
+    --env BASE_PATH=/me/session/username/desktop/ \
+    --bind /etc/passwd:/etc/passwd:ro \
+    --bind /etc/group:/etc/group:ro \
+    kasmvnc.sif
+```
+
+**Access:** Open `http://<hostname>:8080/` (or your configured `BASE_PATH`) in your browser.
 
 ## Environment Variables
 

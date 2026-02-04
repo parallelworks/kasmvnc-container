@@ -20,9 +20,20 @@ echo "[INFO] XDG_RUNTIME_DIR set to $XDG_RUNTIME_DIR"
 KASM_PORT="${KASM_PORT:-${BASE_PORT:-8590}}"
 export KASM_PORT
 
-# Use a fixed display number to avoid conflicts
-# Display number is independent of the websocket port
-DESKTOP_NUMBER="${VNC_DISPLAY:-1}"
+# Find an available display number (or use VNC_DISPLAY if set)
+if [ -n "$VNC_DISPLAY" ]; then
+    DESKTOP_NUMBER="$VNC_DISPLAY"
+else
+    # Auto-find available display by checking /tmp/.X*-lock files
+    DESKTOP_NUMBER=1
+    while [ -f "/tmp/.X${DESKTOP_NUMBER}-lock" ] || [ -S "/tmp/.X11-unix/X${DESKTOP_NUMBER}" ]; do
+        DESKTOP_NUMBER=$((DESKTOP_NUMBER + 1))
+        if [ $DESKTOP_NUMBER -gt 99 ]; then
+            echo "[ERROR] Could not find available display (tried :1 to :99)"
+            exit 1
+        fi
+    done
+fi
 
 # Set Nginx port (external)
 export NGINX_PORT="${NGINX_PORT:-8080}"
@@ -149,6 +160,9 @@ exec cinnamon-session
 EOF
 chmod +x "$HOME/.vnc/xstartup"
 echo "[INFO] Generated xstartup for Cinnamon desktop"
+
+# Create marker file to skip KasmVNC's DE selection menu
+touch "$HOME/.vnc/.de-was-selected"
 
 # We must set a password even if KASM does not use it for user auth.
 # Use hashlib instead of deprecated crypt module for Python 3.13+ compatibility

@@ -58,7 +58,7 @@ else
     SIF_FILE_ABS="${SIF_FILE}"
 fi
 
-echo "=== Building Singularity Proxy Container ===""
+echo "=== Building Singularity Proxy Container ==="
 echo "Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Output file: ${SIF_FILE_ABS}"
 echo ""

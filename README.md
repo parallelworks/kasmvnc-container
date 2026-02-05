@@ -4,7 +4,7 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 
 ## Features
 
-- Ubuntu 22.04 with Cinnamon desktop (XFCE fallback for non-systemd containers)
+- Ubuntu 24.04 with Cinnamon desktop (XFCE fallback for non-systemd containers)
 - KasmVNC 1.4.0 web-based remote access
 - Nginx reverse proxy with BASE_PATH support
 - UID-aware for Singularity/Apptainer/Enroot

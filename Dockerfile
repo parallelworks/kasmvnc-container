@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 LABEL maintainer="Parallel Works <support@parallelworks.com>"
 
 #----------------------
@@ -135,11 +135,11 @@ RUN cd /tmp && \
 # Copy custom background
 COPY files/backgrounds/tealized.jpg /usr/share/backgrounds/tealized.jpg
 
-# Download and install KasmVNC 1.4.0 for Ubuntu 22.04 (jammy)
+# Download and install KasmVNC 1.4.0 for Ubuntu 24.04 (noble)
 RUN cd /tmp && \
-    wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_jammy_1.4.0_amd64.deb && \
-    apt-get update && apt-get install -y ./kasmvncserver_jammy_1.4.0_amd64.deb && \
-    rm kasmvncserver_jammy_1.4.0_amd64.deb && \
+    wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_noble_1.4.0_amd64.deb && \
+    apt-get update && apt-get install -y ./kasmvncserver_noble_1.4.0_amd64.deb && \
+    rm kasmvncserver_noble_1.4.0_amd64.deb && \
     rm -rf /var/lib/apt/lists/*
 
 #------------------------

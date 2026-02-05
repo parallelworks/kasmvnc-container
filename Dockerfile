@@ -180,7 +180,7 @@ COPY files/kasmvnc.yaml /metauser_home_vanilla/.vnc/kasmvnc.yaml
 RUN chmod 755 /metauser_home_vanilla/.vnc/xstartup
 
 # Configure XFCE settings via xfconf XML files
-# Set Adwaita-dark theme and icons, dark teal background
+# Set Adwaita-dark theme and icons, dark green background
 RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && \
     echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <channel name="xsettings" version="1.0">\n\
@@ -208,9 +208,9 @@ RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && 
           <property name="color-style" type="int" value="0"/>\n\
           <property name="image-style" type="int" value="0"/>\n\
           <property name="rgba1" type="array">\n\
-            <value type="double" value="0.105882"/>\n\
-            <value type="double" value="0.164706"/>\n\
-            <value type="double" value="0.207843"/>\n\
+            <value type="double" value="0.098039"/>\n\
+            <value type="double" value="0.176471"/>\n\
+            <value type="double" value="0.117647"/>\n\
             <value type="double" value="1.000000"/>\n\
           </property>\n\
         </property>\n\

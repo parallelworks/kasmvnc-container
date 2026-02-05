@@ -256,7 +256,7 @@ exec dbus-run-session -- bash -c '
     xfconf-query -c xsettings -p /Net/IconThemeName -s "Adwaita" 2>/dev/null || true
     xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
 
-    # Set dark teal solid background color (RGB: 27, 42, 53 = #1b2a35)
+    # Set dark green solid background color (RGB: 25, 45, 30 = #192d1e)
     # Find the actual monitor name from xfconf (VNC creates dynamic names like "screen")
     MONITOR=$(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -oP "monitor[^/]+" | head -1)
     if [ -z "$MONITOR" ]; then
@@ -269,8 +269,8 @@ exec dbus-run-session -- bash -c '
     xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/image-style" -n -t int -s 0 2>/dev/null || true
     # Clear any existing image path
     xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/last-image" -r 2>/dev/null || true
-    # Set the solid color (dark teal)
-    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/rgba1" -n -t double -t double -t double -t double -s 0.105882 -s 0.164706 -s 0.207843 -s 1.0 2>/dev/null || true
+    # Set the solid color (dark green)
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/rgba1" -n -t double -t double -t double -t double -s 0.098039 -s 0.176471 -s 0.117647 -s 1.0 2>/dev/null || true
 ) &
 startxfce4
 '

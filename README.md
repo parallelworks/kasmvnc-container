@@ -42,7 +42,8 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 
 **Build Proxy Only (lightweight):**
 ```bash
-./Docker-proxy.sh --push
+./Docker-proxy.sh --push       # Docker
+./Singularity-proxy.sh         # Singularity
 ```
 
 **Run (basic):**

@@ -286,8 +286,19 @@ A minimal container (~30MB) with just Nginx - no desktop environment.
 
 **Building:**
 ```bash
-./Docker-proxy.sh              # Build only
-./Docker-proxy.sh --push       # Build and push to registry
+./Docker-proxy.sh              # Docker - Build only
+./Docker-proxy.sh --push       # Docker - Build and push to registry
+./Singularity-proxy.sh         # Singularity - Build SIF file
+```
+
+**Running (Singularity):**
+```bash
+singularity run \
+    --env KASM_HOST=<host-ip> \
+    --env KASM_PORT=8443 \
+    --env NGINX_PORT=8080 \
+    --env BASE_PATH=/me/session/user/desktop/ \
+    kasmproxy.sif
 ```
 
 **Running (Docker):**
@@ -398,6 +409,7 @@ singularity exec kasmvnc.sif id
 ├── Docker.sh               # Build script (full container)
 ├── Docker-proxy.sh         # Build script (proxy container)
 ├── Singularity.sh          # Build script (Singularity/Apptainer)
+├── Singularity-proxy.sh    # Build script (Singularity proxy)
 ├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide
 ├── USAGE.md                # This file

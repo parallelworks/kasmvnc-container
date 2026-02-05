@@ -4,13 +4,21 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 
 ## Features
 
-- Ubuntu 24.04 with Cinnamon desktop
+- Ubuntu 22.04 with Cinnamon desktop (XFCE fallback for non-systemd containers)
 - KasmVNC 1.4.0 web-based remote access
-- Nginx reverse proxy with base path support
-- UID-aware for Singularity/Apptainer
+- Nginx reverse proxy with BASE_PATH support
+- UID-aware for Singularity/Apptainer/Enroot
+- HPC software dependencies (csh, ksh, 32-bit libs)
 - Slurm submit host capable
 - GPU support (`--nv` flag)
 - Adapta-Nokto dark theme
+
+## Containers
+
+| Container | Description | Size |
+|-----------|-------------|------|
+| `kasmvnc` | Full desktop environment | ~2GB |
+| `kasmproxy` | Lightweight nginx proxy only | ~25MB |
 
 ## Quick Start
 
@@ -32,6 +40,11 @@ A containerized Cinnamon desktop environment accessible via web browser, optimiz
 ./Enroot.sh
 ```
 
+**Build Proxy Only (lightweight):**
+```bash
+./Docker-proxy.sh --push
+```
+
 **Run (basic):**
 ```bash
 singularity run \
@@ -48,6 +61,15 @@ singularity run \
     --bind /etc/passwd:/etc/passwd:ro \
     --bind /etc/group:/etc/group:ro \
     kasmvnc.sif
+```
+
+**Run Proxy Only (when KasmVNC is on host):**
+```bash
+docker run -p 8080:8080 \
+    -e KASM_HOST=<host-ip> \
+    -e KASM_PORT=8443 \
+    -e BASE_PATH=/me/session/user/desktop/ \
+    kasmproxy
 ```
 
 **Access:** Open `http://<hostname>:8080/` (or your configured `BASE_PATH`) in your browser.

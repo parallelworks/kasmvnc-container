@@ -60,6 +60,9 @@ export NGINX_PORT="${NGINX_PORT:-8080}"
 # Set base path (default: /)
 export BASE_PATH="${BASE_PATH:-/}"
 
+# Set VNC resolution (default: 1920x1080)
+export VNC_RESOLUTION="${VNC_RESOLUTION:-1920x1080}"
+
 # Ensure base path starts with / and doesn't end with / (unless it's just /)
 if [[ "$BASE_PATH" != /* ]]; then
     BASE_PATH="/$BASE_PATH"
@@ -72,6 +75,7 @@ echo "[INFO] Kasm VNC port: $KASM_PORT (internal websocket)"
 echo "[INFO] VNC display: :$DESKTOP_NUMBER"
 echo "[INFO] Nginx port: $NGINX_PORT (external)"
 echo "[INFO] Base path: $BASE_PATH"
+echo "[INFO] VNC resolution: $VNC_RESOLUTION"
 
 # Aggressive cleanup of ALL stale VNC sessions for this user
 echo "[INFO] Cleaning up stale VNC sessions and config files..."
@@ -399,7 +403,7 @@ echo "[INFO] Starting Kasm VNC server on display :${DESKTOP_NUMBER}..."
 VNC_CMD="/usr/bin/vncserver :$DESKTOP_NUMBER \
     -xstartup $HOME/.vnc/xstartup \
     -depth 24 \
-    -geometry 1280x1050 \
+    -geometry $VNC_RESOLUTION \
     -websocketPort $KASM_PORT \
     -httpd /usr/share/kasmvnc/www \
     -disableBasicAuth \

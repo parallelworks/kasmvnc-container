@@ -276,6 +276,82 @@ srun --container-image=kasmvnc.sqsh \
 - For Slurm integration, ensure pyxis plugin is installed
 - GPU support requires nvidia-container-cli
 
+## Proxy-Only Mode
+
+Use a lightweight Nginx proxy when KasmVNC is already running on the host.
+
+### Lightweight Proxy Container
+
+A minimal container (~30MB) with just Nginx - no desktop environment.
+
+**Building:**
+```bash
+./Docker-proxy.sh              # Build only
+./Docker-proxy.sh --push       # Build and push to registry
+```
+
+**Running (Docker):**
+```bash
+docker run -p 8080:8080 \
+    -e KASM_HOST=<host-ip> \
+    -e KASM_PORT=8443 \
+    -e BASE_PATH=/me/session/user/desktop/ \
+    kasmproxy
+```
+
+**Running (Enroot):**
+```bash
+enroot import -o kasmproxy.sqsh docker://parallelworks/kasmproxy:latest
+enroot create --name kasmproxy kasmproxy.sqsh
+enroot start \
+    -e KASM_HOST=<host-ip> \
+    -e KASM_PORT=8443 \
+    -e BASE_PATH=/me/session/user/desktop/ \
+    kasmproxy
+```
+
+### Using Full Container as Proxy
+
+Alternatively, use the full container as a lightweight Nginx proxy when KasmVNC is already running on the host.
+
+### When to Use
+
+- KasmVNC is installed directly on the host system
+- You only need BASE_PATH routing for reverse proxy integration
+- Lighter footprint than full desktop container
+
+### Running
+
+```bash
+# Basic - proxy to KasmVNC on localhost:8443
+singularity run kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+
+# With custom KasmVNC port
+singularity run --env KASM_PORT=6901 kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+
+# With BASE_PATH for reverse proxy
+singularity run \
+    --env KASM_PORT=8443 \
+    --env BASE_PATH=/me/session/user/desktop/ \
+    --env NGINX_PORT=8080 \
+    kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+
+# Connect to KasmVNC on different host
+singularity run \
+    --env KASM_HOST=192.168.1.100 \
+    --env KASM_PORT=8443 \
+    kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KASM_HOST` | `127.0.0.1` | Host where KasmVNC is running |
+| `KASM_PORT` | `8443` | KasmVNC websocket port |
+| `NGINX_PORT` | `8080` | Nginx listen port |
+| `BASE_PATH` | `/` | URL base path for routing |
+
 ## Troubleshooting
 
 ### Black screen / Cinnamon not starting
@@ -317,8 +393,10 @@ singularity exec kasmvnc.sif id
 
 ```
 .
-├── Dockerfile              # Container definition
-├── Docker.sh               # Build script (Docker) with registry push
+├── Dockerfile              # Full desktop container
+├── Dockerfile.proxy        # Lightweight proxy-only container
+├── Docker.sh               # Build script (full container)
+├── Docker-proxy.sh         # Build script (proxy container)
 ├── Singularity.sh          # Build script (Singularity/Apptainer)
 ├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide
@@ -328,6 +406,7 @@ singularity exec kasmvnc.sif id
     ├── base_entrypoint.sh  # UID-aware entrypoint
     ├── run_kasm.sh         # KasmVNC startup (direct)
     ├── run_kasm_nginx.sh   # KasmVNC + Nginx startup
+    ├── run_nginx_proxy.sh  # Nginx proxy only (for host KasmVNC)
     ├── nginx.conf          # Nginx config template
     ├── xstartup            # VNC session startup
     ├── kasmvnc.yaml        # KasmVNC configuration

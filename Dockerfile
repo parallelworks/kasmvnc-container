@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 LABEL maintainer="Parallel Works <support@parallelworks.com>"
 
 #----------------------
@@ -13,7 +13,37 @@ RUN apt-get update && apt-get install -y \
     sudo nano emacs vim screen telnet iputils-ping curl wget unzip git-core \
     python3-pip python3-venv \
     libnss-wrapper \
+    csh tcsh ksh \
+    gdb \
     && apt-get clean
+
+#------------------------
+# HPC/CAE Software Dependencies
+#------------------------
+
+# Enable 32-bit architecture for legacy libraries
+RUN dpkg --add-architecture i386 && apt-get update
+
+# Install HPC/CAE dependencies (for ANSYS, STAR-CCM+, etc.)
+RUN apt-get install -y \
+    libelf1 libelf-dev \
+    libglapi-mesa libglapi-mesa:i386 \
+    libglu1-mesa libglu1-mesa:i386 \
+    libjpeg8:i386 libjpeg-turbo8:i386 \
+    libpng16-16:i386 \
+    libexpat1:i386 \
+    libc6:i386 libc6-dev:i386 \
+    libxp6:i386 2>/dev/null || true \
+    && apt-get clean
+
+# pstack: Create pstack using gdb (gstack doesn't exist on Ubuntu)
+RUN printf '#!/bin/bash\ngdb -batch -ex "thread apply all bt" -p "$1" 2>/dev/null\n' > /usr/bin/pstack && \
+    chmod +x /usr/bin/pstack
+
+# Create symlinks for legacy library compatibility
+# libpng12 -> libpng16 (most apps work with this)
+RUN ln -sf /usr/lib/x86_64-linux-gnu/libpng16.so.16 /usr/lib/x86_64-linux-gnu/libpng12.so.0 2>/dev/null || true && \
+    ln -sf /usr/lib/i386-linux-gnu/libpng16.so.16 /usr/lib/i386-linux-gnu/libpng12.so.0 2>/dev/null || true
 
 # Change APT user to allow some container runtimes properly work (i.e. Podman)
 RUN groupadd -g 600 _apt && usermod -g 600 _apt
@@ -23,6 +53,7 @@ RUN groupadd -g 600 _apt && usermod -g 600 _apt
 #------------------------
 
 # Remove default ubuntu user if it exists (Ubuntu 24.04 creates one with UID/GID 1000)
+# Keep this for forward compatibility even on 22.04
 RUN userdel -r ubuntu 2>/dev/null || true && groupdel ubuntu 2>/dev/null || true
 
 # Add group and user with UID/GID 1000
@@ -104,11 +135,11 @@ RUN cd /tmp && \
 # Copy custom background
 COPY files/backgrounds/tealized.jpg /usr/share/backgrounds/tealized.jpg
 
-# Download and install KasmVNC 1.4.0 for Ubuntu 24.04 (noble)
+# Download and install KasmVNC 1.4.0 for Ubuntu 22.04 (jammy)
 RUN cd /tmp && \
-    wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_noble_1.4.0_amd64.deb && \
-    apt-get update && apt-get install -y ./kasmvncserver_noble_1.4.0_amd64.deb && \
-    rm kasmvncserver_noble_1.4.0_amd64.deb && \
+    wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_jammy_1.4.0_amd64.deb && \
+    apt-get update && apt-get install -y ./kasmvncserver_jammy_1.4.0_amd64.deb && \
+    rm kasmvncserver_jammy_1.4.0_amd64.deb && \
     rm -rf /var/lib/apt/lists/*
 
 #------------------------
@@ -129,7 +160,8 @@ COPY files/nginx.conf /etc/nginx/nginx.conf.template
 # Copy startup scripts
 COPY files/run_kasm.sh /usr/local/bin/run_kasm.sh
 COPY files/run_kasm_nginx.sh /usr/local/bin/run_kasm_nginx.sh
-RUN chmod 755 /usr/local/bin/run_kasm.sh /usr/local/bin/run_kasm_nginx.sh
+COPY files/run_nginx_proxy.sh /usr/local/bin/run_nginx_proxy.sh
+RUN chmod 755 /usr/local/bin/run_kasm.sh /usr/local/bin/run_kasm_nginx.sh /usr/local/bin/run_nginx_proxy.sh
 
 # Entrypoint script (UID-aware for Singularity)
 COPY files/base_entrypoint.sh /usr/bin/base_entrypoint.sh

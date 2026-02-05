@@ -1,0 +1,23 @@
+FROM nginx:alpine
+LABEL maintainer="Parallel Works <support@parallelworks.com>"
+LABEL description="Lightweight Nginx proxy for KasmVNC with BASE_PATH support"
+
+# Install bash and curl (for health checks)
+RUN apk add --no-cache bash curl
+
+# Remove default nginx config
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Copy proxy script
+COPY files/run_nginx_proxy.sh /usr/local/bin/run_nginx_proxy.sh
+RUN chmod 755 /usr/local/bin/run_nginx_proxy.sh
+
+# Environment defaults
+ENV KASM_HOST=127.0.0.1
+ENV KASM_PORT=8443
+ENV NGINX_PORT=8080
+ENV BASE_PATH=/
+
+EXPOSE 8080
+
+CMD ["/usr/local/bin/run_nginx_proxy.sh"]

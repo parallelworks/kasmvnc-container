@@ -1,10 +1,10 @@
-# KasmVNC Cinnamon Desktop
+# KasmVNC XFCE Desktop
 
-A containerized Cinnamon desktop environment accessible via web browser, optimized for HPC/Singularity deployments.
+A containerized XFCE desktop environment accessible via web browser, optimized for HPC/Singularity deployments.
 
 ## Features
 
-- Ubuntu 24.04 with Cinnamon desktop (XFCE fallback for non-systemd containers)
+- Ubuntu 24.04 with XFCE desktop (lightweight, works without system D-Bus)
 - KasmVNC 1.4.0 web-based remote access
 - Nginx reverse proxy with BASE_PATH support
 - UID-aware for Singularity/Apptainer/Enroot

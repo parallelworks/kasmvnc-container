@@ -68,12 +68,11 @@ COPY files/sudoers /etc/sudoers
 RUN mkdir /home/metauser/.logs && chown metauser:metauser /home/metauser/.logs
 
 #------------------------
-# Kasm VNC 1.4.0 + Cinnamon Desktop
+# Kasm VNC 1.4.0 + XFCE Desktop
 #------------------------
 
-# Install X11, VNC dependencies, and Cinnamon desktop
-# Also install XFCE as fallback for containers without systemd (Enroot, etc.)
-# And openbox as minimal fallback
+# Install X11, VNC dependencies, and XFCE desktop
+# XFCE is lightweight and works without system D-Bus (ideal for containers)
 RUN apt-get update && apt-get install -y \
     xvfb \
     xterm \
@@ -82,30 +81,26 @@ RUN apt-get update && apt-get install -y \
     libdatetime-perl \
     dbus-x11 \
     at-spi2-core \
-    cinnamon \
-    cinnamon-session \
-    cinnamon-settings-daemon \
-    muffin \
-    nemo \
-    gnome-terminal \
-    gedit \
-    adwaita-icon-theme \
-    gnome-themes-extra \
-    xdg-utils \
-    evince \
-    file-roller \
-    eog \
-    htop \
-    openssh-client \
-    software-properties-common \
     xfce4 \
     xfce4-terminal \
     xfce4-whiskermenu-plugin \
+    xfce4-pulseaudio-plugin \
+    xfce4-screenshooter \
+    xfce4-taskmanager \
     thunar \
+    thunar-archive-plugin \
     mousepad \
-    openbox \
-    tint2 \
-    feh \
+    ristretto \
+    adwaita-icon-theme \
+    gnome-themes-extra \
+    arc-theme \
+    papirus-icon-theme \
+    xdg-utils \
+    evince \
+    file-roller \
+    htop \
+    openssh-client \
+    software-properties-common \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -122,15 +117,9 @@ RUN rm -f /etc/xdg/autostart/blueman.desktop \
           /etc/xdg/autostart/gnome-keyring-pkcs11.desktop \
           /etc/xdg/autostart/gnome-keyring-secrets.desktop \
           /etc/xdg/autostart/gnome-keyring-ssh.desktop \
-          /etc/xdg/autostart/org.gnome.SettingsDaemon.*.desktop \
-          /etc/xdg/autostart/cinnamon-screensaver.desktop \
+          /etc/xdg/autostart/xfce4-screensaver.desktop \
+          /etc/xdg/autostart/xscreensaver.desktop \
     2>/dev/null || true
-
-# Install Adapta-Nokto theme from Cinnamon Spices
-RUN cd /tmp && \
-    wget -q https://cinnamon-spices.linuxmint.com/files/themes/Adapta-Nokto.zip && \
-    unzip -q Adapta-Nokto.zip -d /usr/share/themes/ && \
-    rm Adapta-Nokto.zip
 
 # Copy custom background
 COPY files/backgrounds/tealized.jpg /usr/share/backgrounds/tealized.jpg
@@ -192,33 +181,39 @@ COPY files/xstartup /metauser_home_vanilla/.vnc/xstartup
 COPY files/kasmvnc.yaml /metauser_home_vanilla/.vnc/kasmvnc.yaml
 RUN chmod 755 /metauser_home_vanilla/.vnc/xstartup
 
-# Configure gnome-terminal, desktop background, and dark mode via dconf
-RUN mkdir -p /metauser_home_vanilla/.config/dconf && \
-    mkdir -p /tmp/dconf-build && \
-    echo '[org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]' > /tmp/dconf-build/user.txt && \
-    echo 'use-custom-command=true' >> /tmp/dconf-build/user.txt && \
-    echo "custom-command='/bin/bash'" >> /tmp/dconf-build/user.txt && \
-    echo 'login-shell=false' >> /tmp/dconf-build/user.txt && \
-    echo '' >> /tmp/dconf-build/user.txt && \
-    echo '[org/gnome/terminal/legacy/profiles:]' >> /tmp/dconf-build/user.txt && \
-    echo "default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'" >> /tmp/dconf-build/user.txt && \
-    echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']" >> /tmp/dconf-build/user.txt && \
-    echo '' >> /tmp/dconf-build/user.txt && \
-    echo '[org/cinnamon/desktop/background]' >> /tmp/dconf-build/user.txt && \
-    echo "picture-uri='file:///usr/share/desktop-base/futureprototype-theme/wallpaper/contents/images/1920x1080.svg'" >> /tmp/dconf-build/user.txt && \
-    echo "picture-options='zoom'" >> /tmp/dconf-build/user.txt && \
-    echo '' >> /tmp/dconf-build/user.txt && \
-    echo '[org/cinnamon/desktop/interface]' >> /tmp/dconf-build/user.txt && \
-    echo "gtk-theme='Adapta-Nokto'" >> /tmp/dconf-build/user.txt && \
-    echo "icon-theme='Adwaita'" >> /tmp/dconf-build/user.txt && \
-    echo '' >> /tmp/dconf-build/user.txt && \
-    echo '[org/cinnamon/desktop/wm/preferences]' >> /tmp/dconf-build/user.txt && \
-    echo "theme='Adapta-Nokto'" >> /tmp/dconf-build/user.txt && \
-    echo '' >> /tmp/dconf-build/user.txt && \
-    echo '[org/cinnamon/theme]' >> /tmp/dconf-build/user.txt && \
-    echo "name='Adapta-Nokto'" >> /tmp/dconf-build/user.txt && \
-    dconf compile /metauser_home_vanilla/.config/dconf/user /tmp/dconf-build/ && \
-    rm -rf /tmp/dconf-build
+# Configure XFCE settings via xfconf XML files
+# Set dark theme (Arc-Dark), Papirus icons, and background
+RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xsettings" version="1.0">\n\
+  <property name="Net" type="empty">\n\
+    <property name="ThemeName" type="string" value="Arc-Dark"/>\n\
+    <property name="IconThemeName" type="string" value="Papirus-Dark"/>\n\
+  </property>\n\
+  <property name="Gtk" type="empty">\n\
+    <property name="FontName" type="string" value="Sans 10"/>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfwm4" version="1.0">\n\
+  <property name="general" type="empty">\n\
+    <property name="theme" type="string" value="Arc-Dark"/>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-desktop" version="1.0">\n\
+  <property name="backdrop" type="empty">\n\
+    <property name="screen0" type="empty">\n\
+      <property name="monitorscreen" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="last-image" type="string" value="/usr/share/backgrounds/tealized.jpg"/>\n\
+          <property name="image-style" type="int" value="5"/>\n\
+        </property>\n\
+      </property>\n\
+    </property>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml && \
+    chown -R 1000:1000 /metauser_home_vanilla/.config
 
 # Create .bashrc with PS1 override for the vanilla home
 RUN echo '# Source global definitions' > /metauser_home_vanilla/.bashrc && \
@@ -239,28 +234,10 @@ exec /bin/bash --login "$@"
 BASHWRAPPER
 RUN chmod 755 /usr/local/bin/container-bash
 
-# Force gnome-terminal to always run our bash wrapper (bypass $SHELL entirely)
-RUN cat > /usr/share/applications/org.gnome.Terminal.desktop << 'TERMEOF'
-[Desktop Entry]
-Name=Terminal
-Comment=Use the command line
-Keywords=shell;prompt;command;commandline;cmd;
-TryExec=gnome-terminal
-Exec=gnome-terminal -- /usr/local/bin/container-bash
-Icon=org.gnome.Terminal
-Type=Application
-Categories=GNOME;GTK;System;TerminalEmulator;
-StartupNotify=true
-X-GNOME-SingleWindow=false
-
-[Desktop Action new-window]
-Name=New Window
-Exec=gnome-terminal --window -- /usr/local/bin/container-bash
-
-[Desktop Action preferences]
-Name=Preferences
-Exec=gnome-terminal --preferences
-TERMEOF
+# Configure xfce4-terminal to use bash properly
+RUN mkdir -p /metauser_home_vanilla/.config/xfce4/terminal && \
+    echo '[Configuration]\nFontName=Monospace 11\nMiscAlwaysShowTabs=FALSE\nMiscBell=FALSE\nMiscConfirmClose=TRUE\nColorForeground=#f8f8f2\nColorBackground=#282a36\nColorPalette=#21222c;#ff5555;#50fa7b;#f1fa8c;#bd93f9;#ff79c6;#8be9fd;#f8f8f2;#6272a4;#ff6e6e;#69ff94;#ffffa5;#d6acff;#ff92df;#a4ffff;#ffffff\nCommandLoginShell=TRUE\n' > /metauser_home_vanilla/.config/xfce4/terminal/terminalrc && \
+    chown -R 1000:1000 /metauser_home_vanilla/.config/xfce4/terminal
 
 # Fix home permissions (for Singularity compatibility)
 RUN chmod 777 /home
@@ -279,7 +256,7 @@ ENV BASE_PORT=8590
 ENV KASM_PORT=8590
 
 # Container identification
-ENV CONTAINER_NAME='kasmvnc-cinnamon'
+ENV CONTAINER_NAME='kasmvnc-xfce'
 
 # Switch to non-root user
 USER metauser

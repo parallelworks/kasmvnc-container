@@ -82,7 +82,7 @@ Access at: `https://<proxy-host>/me/session/username/desktop/`
 | `BASE_PORT` | `8590` | Alias for KASM_PORT (legacy) |
 | `BASE_PATH` | `/` | URL base path for reverse proxy |
 | `VNC_DISPLAY` | `1` | X display number |
-| `CONTAINER_NAME` | `kasmvnc-cinnamon` | Container identifier |
+| `CONTAINER_NAME` | `kasmvnc-xfce` | Container identifier |
 
 ### Examples
 
@@ -354,7 +354,7 @@ singularity run \
 
 ## Troubleshooting
 
-### Black screen / Cinnamon not starting
+### Black screen / XFCE not starting
 
 Check VNC log:
 ```bash

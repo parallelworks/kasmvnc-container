@@ -247,8 +247,21 @@ if ! getent passwd $(id -u) > /dev/null 2>&1; then
     done
 fi
 
-# Start XFCE with dbus-run-session wrapper
-exec dbus-run-session -- startxfce4
+# Start XFCE with dbus-run-session wrapper and apply theme settings
+exec dbus-run-session -- bash -c '
+# Set Adwaita-dark theme (runs after XFCE starts to ensure xfconf is available)
+(
+    sleep 2
+    xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" 2>/dev/null || true
+    xfconf-query -c xsettings -p /Net/IconThemeName -s "Adwaita" 2>/dev/null || true
+    xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
+    # Set dark teal background color (RGB: 27, 42, 53 = #1b2a35)
+    xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/color-style -n -t int -s 0 2>/dev/null || true
+    xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/image-style -n -t int -s 0 2>/dev/null || true
+    xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorscreen/workspace0/rgba1 -n -t double -t double -t double -t double -s 0.105882 -s 0.164706 -s 0.207843 -s 1.0 2>/dev/null || true
+) &
+startxfce4
+'
 EOF
 chmod +x "$HOME/.vnc/xstartup"
 echo "[INFO] Generated xstartup for XFCE desktop"

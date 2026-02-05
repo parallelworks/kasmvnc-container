@@ -93,8 +93,6 @@ RUN apt-get update && apt-get install -y \
     ristretto \
     adwaita-icon-theme \
     gnome-themes-extra \
-    arc-theme \
-    papirus-icon-theme \
     xdg-utils \
     evince \
     file-roller \
@@ -182,22 +180,23 @@ COPY files/kasmvnc.yaml /metauser_home_vanilla/.vnc/kasmvnc.yaml
 RUN chmod 755 /metauser_home_vanilla/.vnc/xstartup
 
 # Configure XFCE settings via xfconf XML files
-# Set dark theme (Arc-Dark), Papirus icons, and background
+# Set Adwaita-dark theme and icons, dark teal background
 RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && \
     echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <channel name="xsettings" version="1.0">\n\
   <property name="Net" type="empty">\n\
-    <property name="ThemeName" type="string" value="Arc-Dark"/>\n\
-    <property name="IconThemeName" type="string" value="Papirus-Dark"/>\n\
+    <property name="ThemeName" type="string" value="Adwaita-dark"/>\n\
+    <property name="IconThemeName" type="string" value="Adwaita"/>\n\
   </property>\n\
   <property name="Gtk" type="empty">\n\
     <property name="FontName" type="string" value="Sans 10"/>\n\
+    <property name="CursorThemeName" type="string" value="Adwaita"/>\n\
   </property>\n\
 </channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml && \
     echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <channel name="xfwm4" version="1.0">\n\
   <property name="general" type="empty">\n\
-    <property name="theme" type="string" value="Arc-Dark"/>\n\
+    <property name="theme" type="string" value="Adwaita-dark"/>\n\
   </property>\n\
 </channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml && \
     echo '<?xml version="1.0" encoding="UTF-8"?>\n\
@@ -206,8 +205,14 @@ RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && 
     <property name="screen0" type="empty">\n\
       <property name="monitorscreen" type="empty">\n\
         <property name="workspace0" type="empty">\n\
-          <property name="last-image" type="string" value="/usr/share/backgrounds/tealized.jpg"/>\n\
-          <property name="image-style" type="int" value="5"/>\n\
+          <property name="color-style" type="int" value="0"/>\n\
+          <property name="image-style" type="int" value="0"/>\n\
+          <property name="rgba1" type="array">\n\
+            <value type="double" value="0.105882"/>\n\
+            <value type="double" value="0.164706"/>\n\
+            <value type="double" value="0.207843"/>\n\
+            <value type="double" value="1.000000"/>\n\
+          </property>\n\
         </property>\n\
       </property>\n\
     </property>\n\

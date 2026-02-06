@@ -39,6 +39,7 @@ RUN dnf install -y --skip-broken \
     pcre2-utf16 pcre2-utf32 \
     openldap openldap-compat \
     apr apr-util \
+    libssh \
     xorg-x11-fonts-misc xorg-x11-fonts-ISO8859-1-75dpi \
     && dnf clean all
 

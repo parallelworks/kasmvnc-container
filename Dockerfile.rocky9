@@ -24,16 +24,26 @@ RUN dnf install -y --allowerasing \
 # HPC/CAE Software Dependencies
 #------------------------
 
-# Install HPC/CAE dependencies
-RUN dnf install -y \
+# Install HPC/CAE dependencies (Cadence Virtuoso and similar EDA/CAE tools)
+# Uses --skip-broken so missing packages don't block the rest
+RUN dnf install -y --skip-broken \
+    glibc glibc-devel \
     elfutils-libelf elfutils-libelf-devel \
-    mesa-libGL mesa-libGLU \
-    libjpeg-turbo libpng \
-    expat \
+    mesa-libGL mesa-libGLU mesa-dri-drivers \
+    libglvnd-glx \
+    motif libXp libXext libXtst libXScrnSaver \
+    libxkbcommon-x11 \
+    xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util-wm \
+    libjpeg-turbo libpng expat \
+    readline ncurses-libs \
+    pcre2-utf16 pcre2-utf32 \
+    openldap openldap-compat \
+    apr apr-util \
+    xorg-x11-fonts-misc xorg-x11-fonts-ISO8859-1-75dpi \
     && dnf clean all
 
 # Install 32-bit libraries if available (for legacy HPC software)
-RUN dnf install -y \
+RUN dnf install -y --skip-broken \
     glibc.i686 \
     libstdc++.i686 \
     2>/dev/null || true && dnf clean all

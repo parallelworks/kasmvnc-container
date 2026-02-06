@@ -219,6 +219,20 @@ export MOZ_ENABLE_WAYLAND=0
 # Software rendering fallback (for compatibility)
 export LIBGL_ALWAYS_SOFTWARE=1
 
+# Source saved environment from entrypoint (host vars passed through Singularity/Enroot)
+[ -f /tmp/env.sh ] && source /tmp/env.sh 2>/dev/null || true
+
+# Source host /etc/environment if bind-mounted (license servers, tool paths, etc.)
+if [ -f /etc/environment ]; then
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        export "$line" 2>/dev/null || true
+    done < /etc/environment
+fi
+
+# Source user's .bashrc to inherit their environment (PATH, modules, aliases, etc.)
+[ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc" 2>/dev/null || true
+
 # Desktop environment variables
 export XDG_CURRENT_DESKTOP=XFCE
 export DESKTOP_SESSION=xfce
@@ -368,7 +382,8 @@ echo "[INFO] Services ready. Access via port $NGINX_PORT at path $BASE_PATH"
 if [ -n "$STARTUP_COMMAND" ]; then
     echo "[INFO] Running STARTUP_COMMAND: $STARTUP_COMMAND"
     # Wait briefly for the desktop to settle, then launch in the VNC display
-    (sleep 5 && DISPLAY=:${DESKTOP_NUMBER} bash -c "$STARTUP_COMMAND") &
+    # Use login shell so user's .bashrc is sourced (PATH, modules, etc.)
+    (sleep 5 && DISPLAY=:${DESKTOP_NUMBER} bash -l -c "$STARTUP_COMMAND") &
 fi
 
 # Check if both services are running

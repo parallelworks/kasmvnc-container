@@ -110,14 +110,21 @@ else
     #---------------------
     #   Save env
     #---------------------
-	# Create clean env file - only save essential variables
-	# Avoid dumping all env vars as many contain special characters that break sourcing
-	echo "[INFO] Saving essential environment to /tmp/env.sh"
+	# Save full environment to /tmp/env.sh so host vars (from Singularity/Enroot)
+	# propagate to VNC desktop sessions and terminals
+	echo "[INFO] Saving environment to /tmp/env.sh"
 
-	cat > /tmp/env.sh << ENVEOF
-# Container environment - sourced by new shells
-export CONTAINER_NAME="${CONTAINER_NAME}"
-ENVEOF
+	# Use env -0 and process safely to handle special characters in values
+	: > /tmp/env.sh
+	echo "# Container environment - sourced by new shells" >> /tmp/env.sh
+	while IFS='=' read -r -d '' key value; do
+		# Skip internal/readonly vars and vars that could cause issues
+		case "$key" in
+			BASH_FUNC_*|BASHOPTS|BASH_*|SHELLOPTS|FUNCNAME|GROUPS|DIRSTACK|_|SHLVL|PWD|OLDPWD|TERM|SSH_*) continue ;;
+		esac
+		# Use printf to safely handle values with quotes/special chars
+		printf 'export %s=%q\n' "$key" "$value" >> /tmp/env.sh
+	done < <(env -0 2>/dev/null || true)
 
 		
     #---------------------

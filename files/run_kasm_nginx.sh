@@ -364,6 +364,13 @@ echo "[INFO] Nginx started successfully (PID: $NGINX_PID)"
 
 echo "[INFO] Services ready. Access via port $NGINX_PORT at path $BASE_PATH"
 
+# Launch optional startup command in the desktop session
+if [ -n "$STARTUP_COMMAND" ]; then
+    echo "[INFO] Running STARTUP_COMMAND: $STARTUP_COMMAND"
+    # Wait briefly for the desktop to settle, then launch in the VNC display
+    (sleep 5 && DISPLAY=:${DESKTOP_NUMBER} bash -c "$STARTUP_COMMAND") &
+fi
+
 # Check if both services are running
 while true
 do

@@ -23,7 +23,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
-IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
+IMAGE_NAME="${IMAGE_NAME:-kasmvnc-ubuntu}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 # Shared installation path (optional)
@@ -42,7 +42,7 @@ fi
 # Docker registry for pulling pre-built images (used in registry mode)
 # Format: namespace/image for Docker Hub, or registry/namespace/image for others
 # Note: For Docker Hub, do NOT include "docker.io/" prefix - Enroot doesn't want it
-DOCKER_REGISTRY="${DOCKER_REGISTRY:-parallelworks/kasmvnc}"
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-parallelworks/kasmvnc-ubuntu}"
 
 # Build mode: "local" (build with Docker) or "registry" (pull from registry)
 # If not set, auto-detect based on Docker availability
@@ -104,7 +104,7 @@ if [ "$BUILD_MODE" = "local" ]; then
     echo ""
 
     echo "Step 1: Building Docker image..."
-    docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" "${SCRIPT_DIR}"
+    docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f "${SCRIPT_DIR}/Dockerfile.ubuntu" "${SCRIPT_DIR}"
 
     echo ""
     echo "Step 2: Converting Docker image to Enroot squashfs..."

@@ -60,6 +60,9 @@ export NGINX_PORT="${NGINX_PORT:-8080}"
 # Set base path (default: /)
 export BASE_PATH="${BASE_PATH:-/}"
 
+# Set VNC resolution (default: 1920x1080)
+export VNC_RESOLUTION="${VNC_RESOLUTION:-1920x1080}"
+
 # Ensure base path starts with / and doesn't end with / (unless it's just /)
 if [[ "$BASE_PATH" != /* ]]; then
     BASE_PATH="/$BASE_PATH"
@@ -72,6 +75,7 @@ echo "[INFO] Kasm VNC port: $KASM_PORT (internal websocket)"
 echo "[INFO] VNC display: :$DESKTOP_NUMBER"
 echo "[INFO] Nginx port: $NGINX_PORT (external)"
 echo "[INFO] Base path: $BASE_PATH"
+echo "[INFO] VNC resolution: $VNC_RESOLUTION"
 
 # Aggressive cleanup of ALL stale VNC sessions for this user
 echo "[INFO] Cleaning up stale VNC sessions and config files..."
@@ -193,19 +197,15 @@ EOF
 fi
 echo "[INFO] Generated kasmvnc.yaml for reverse proxy mode (SSL: $SSL_AVAILABLE)"
 
-# Generate xstartup for Cinnamon desktop
+# Generate xstartup for XFCE desktop
 cat > "$HOME/.vnc/xstartup" << 'EOF'
 #!/bin/bash
-# KasmVNC xstartup - Cinnamon Desktop
+# KasmVNC xstartup - XFCE Desktop
 
 # CRITICAL: Force XDG_RUNTIME_DIR to writable location (Singularity read-only fix)
-# Do NOT use conditional ${VAR:-default} - forcibly override any existing value
 export XDG_RUNTIME_DIR="/tmp/runtime-$(id -u)"
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
-
-# Also set ICEAUTHORITY to writable location (cinnamon-session requirement)
-export ICEAUTHORITY="$XDG_RUNTIME_DIR/ICEauthority"
 
 # Force shell to bash (Apptainer sets a weird default shell)
 export SHELL=/bin/bash
@@ -213,7 +213,6 @@ export SHELL=/bin/bash
 # Force X11 backends (not Wayland)
 export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
-export CLUTTER_BACKEND=x11
 export QT_QPA_PLATFORM=xcb
 export MOZ_ENABLE_WAYLAND=0
 
@@ -221,33 +220,25 @@ export MOZ_ENABLE_WAYLAND=0
 export LIBGL_ALWAYS_SOFTWARE=1
 
 # Desktop environment variables
-export XDG_CURRENT_DESKTOP=X-Cinnamon
-export DESKTOP_SESSION=cinnamon
+export XDG_CURRENT_DESKTOP=XFCE
+export DESKTOP_SESSION=xfce
 export XDG_CONFIG_DIRS=/etc/xdg
 export XDG_DATA_DIRS=/usr/share:/usr/local/share
 
-# Kill any stale Cinnamon processes
-killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
+# Kill any stale XFCE processes
+killall -q xfce4-session xfwm4 xfce4-panel xfdesktop thunar 2>/dev/null || true
 
 # Fix for LDAP/NIS users not in /etc/passwd - create temp passwd entry
-# This is needed for dbus to start properly
 if ! getent passwd $(id -u) > /dev/null 2>&1; then
     echo "[INFO] User not in passwd database, creating temporary entry for dbus"
     NSS_WRAPPER_DIR="/tmp/nss_wrapper_$(id -u)"
     mkdir -p "$NSS_WRAPPER_DIR"
-
-    # Create passwd entry
     echo "$(id -un):x:$(id -u):$(id -g):$(id -un):$HOME:/bin/bash" > "$NSS_WRAPPER_DIR/passwd"
-    # Also include root
     grep "^root:" /etc/passwd >> "$NSS_WRAPPER_DIR/passwd" 2>/dev/null || echo "root:x:0:0:root:/root:/bin/bash" >> "$NSS_WRAPPER_DIR/passwd"
-
-    # Create group entry
     echo "$(id -gn):x:$(id -g):" > "$NSS_WRAPPER_DIR/group"
     grep "^root:" /etc/group >> "$NSS_WRAPPER_DIR/group" 2>/dev/null || echo "root:x:0:" >> "$NSS_WRAPPER_DIR/group"
-
     export NSS_WRAPPER_PASSWD="$NSS_WRAPPER_DIR/passwd"
     export NSS_WRAPPER_GROUP="$NSS_WRAPPER_DIR/group"
-    # Find libnss_wrapper.so (path varies by distro)
     for wrapper_path in /usr/lib/x86_64-linux-gnu/libnss_wrapper.so /usr/lib/libnss_wrapper.so /usr/lib64/libnss_wrapper.so; do
         if [ -f "$wrapper_path" ]; then
             export LD_PRELOAD="$wrapper_path"
@@ -256,100 +247,36 @@ if ! getent passwd $(id -u) > /dev/null 2>&1; then
     done
 fi
 
-# Start desktop with dbus-run-session wrapper
-# Use bash -c to set theme defaults and try multiple desktop options
+# Start XFCE with dbus-run-session wrapper and apply theme settings
 exec dbus-run-session -- bash -c '
-# Set default theme and background (Adapta-Nokto dark theme)
-gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.interface gtk-theme "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/tealized.jpg" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
+# Set Adwaita-dark theme (runs after XFCE starts to ensure xfconf is available)
+(
+    sleep 3
+    xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" 2>/dev/null || true
+    xfconf-query -c xsettings -p /Net/IconThemeName -s "Adwaita" 2>/dev/null || true
+    xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
 
-# Pin Firefox and Terminal to panel (add panel-launchers applet)
-gsettings set org.cinnamon favorite-apps "[\x27firefox.desktop\x27, \x27org.gnome.Terminal.desktop\x27, \x27nemo.desktop\x27]" 2>/dev/null || true
-gsettings set org.cinnamon enabled-applets "[\x27panel1:left:0:menu@cinnamon.org:0\x27, \x27panel1:left:1:panel-launchers@cinnamon.org:1\x27, \x27panel1:left:2:separator@cinnamon.org:2\x27, \x27panel1:left:3:grouped-window-list@cinnamon.org:3\x27, \x27panel1:right:0:systray@cinnamon.org:4\x27, \x27panel1:right:1:xapp-status@cinnamon.org:5\x27, \x27panel1:right:2:notifications@cinnamon.org:6\x27, \x27panel1:right:3:removable-drives@cinnamon.org:7\x27, \x27panel1:right:4:network@cinnamon.org:8\x27, \x27panel1:right:5:sound@cinnamon.org:9\x27, \x27panel1:right:6:power@cinnamon.org:10\x27, \x27panel1:right:7:calendar@cinnamon.org:11\x27]" 2>/dev/null || true
-
-# Try cinnamon-session first (works with systemd/full dbus)
-# If that fails, try cinnamon directly (window manager only)
-# If that fails, fall back to basic xterm
-echo "[Desktop] Trying cinnamon-session..."
-cinnamon-session 2>/dev/null &
-CINNAMON_PID=$!
-sleep 3
-
-if kill -0 $CINNAMON_PID 2>/dev/null; then
-    echo "[Desktop] cinnamon-session started successfully"
-    wait $CINNAMON_PID
-else
-    echo "[Desktop] cinnamon-session failed, trying cinnamon directly..."
-    # Start panel and window manager separately
-    cinnamon --replace 2>/dev/null &
-    CINNAMON_PID=$!
-    sleep 2
-
-    if kill -0 $CINNAMON_PID 2>/dev/null; then
-        echo "[Desktop] cinnamon window manager started"
-        # Also start nemo for desktop icons
-        nemo-desktop 2>/dev/null &
-        wait $CINNAMON_PID
-    else
-        echo "[Desktop] cinnamon failed, trying XFCE (works without systemd)..."
-        # XFCE fallback - full desktop that works without system dbus
-
-        # Try to set XFCE theme to dark
-        xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" 2>/dev/null || true
-        xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
-
-        # Set background for XFCE
-        if [ -f /usr/share/backgrounds/tealized.jpg ]; then
-            xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s /usr/share/backgrounds/tealized.jpg 2>/dev/null || true
-        fi
-
-        xfce4-session 2>/dev/null &
-        XFCE_PID=$!
-        sleep 3
-
-        if kill -0 $XFCE_PID 2>/dev/null; then
-            echo "[Desktop] XFCE started successfully"
-            wait $XFCE_PID
-        else
-            echo "[Desktop] XFCE failed, trying openbox (minimal fallback)..."
-            # Openbox fallback - works without system dbus
-
-            # Set background
-            if [ -f /usr/share/backgrounds/tealized.jpg ]; then
-                feh --bg-scale /usr/share/backgrounds/tealized.jpg 2>/dev/null &
-            fi
-
-            # Start tint2 panel
-            tint2 2>/dev/null &
-
-            # Start openbox window manager
-            openbox 2>/dev/null &
-            OPENBOX_PID=$!
-            sleep 2
-
-            if kill -0 $OPENBOX_PID 2>/dev/null; then
-                echo "[Desktop] openbox started successfully"
-                # Start a terminal for user convenience
-                xfce4-terminal 2>/dev/null || gnome-terminal 2>/dev/null || xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
-                # Start file manager
-                thunar 2>/dev/null || nemo 2>/dev/null &
-                wait $OPENBOX_PID
-            else
-                echo "[Desktop] openbox failed, falling back to xterm only..."
-                xterm -geometry 100x40+50+50 -fa "DejaVu Sans Mono" -fs 12 &
-                while true; do sleep 60; done
-            fi
-        fi
+    # Set dark green solid background color (RGB: 25, 45, 30 = #192d1e)
+    # Find the actual monitor name from xfconf (VNC creates dynamic names like "screen")
+    MONITOR=$(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -oP "monitor[^/]+" | head -1)
+    if [ -z "$MONITOR" ]; then
+        MONITOR="monitorscreen"
     fi
-fi
+    BACKDROP_PATH="/backdrop/screen0/${MONITOR}/workspace0"
+
+    # Set solid color mode (color-style=0) and no image (image-style=0)
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/color-style" -n -t int -s 0 2>/dev/null || true
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/image-style" -n -t int -s 0 2>/dev/null || true
+    # Clear any existing image path
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/last-image" -r 2>/dev/null || true
+    # Set the solid color (dark green)
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/rgba1" -n -t double -t double -t double -t double -s 0.098039 -s 0.176471 -s 0.117647 -s 1.0 2>/dev/null || true
+) &
+startxfce4
 '
 EOF
 chmod +x "$HOME/.vnc/xstartup"
-echo "[INFO] Generated xstartup for Cinnamon desktop"
+echo "[INFO] Generated xstartup for XFCE desktop"
 
 # Create marker file to skip KasmVNC's DE selection menu
 touch "$HOME/.vnc/.de-was-selected"
@@ -399,7 +326,7 @@ echo "[INFO] Starting Kasm VNC server on display :${DESKTOP_NUMBER}..."
 VNC_CMD="/usr/bin/vncserver :$DESKTOP_NUMBER \
     -xstartup $HOME/.vnc/xstartup \
     -depth 24 \
-    -geometry 1280x1050 \
+    -geometry $VNC_RESOLUTION \
     -websocketPort $KASM_PORT \
     -httpd /usr/share/kasmvnc/www \
     -disableBasicAuth \

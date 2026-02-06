@@ -38,7 +38,7 @@ if ! command -v singularity &> /dev/null && command -v apptainer &> /dev/null; t
 fi
 
 # Configuration
-IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
+IMAGE_NAME="${IMAGE_NAME:-kasmvnc-ubuntu}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 BUILD_SANDBOX="${BUILD_SANDBOX:-false}"  # Set to 'true' for directory format
 FORCE="${FORCE:-false}"  # Force rebuild even if exists
@@ -61,7 +61,7 @@ else
     SIF_FILE_ABS="${SIF_FILE}"
 fi
 
-echo "=== Building Singularity container from Dockerfile ==="
+echo "=== Building Singularity Container (Ubuntu 24.04) ==="
 echo "Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Output file: ${SIF_FILE_ABS}"
 echo ""
@@ -72,7 +72,7 @@ if [ -f "${SIF_FILE}" ] && [ "$FORCE" != "true" ]; then
     echo "File: ${SIF_FILE_ABS}"
     echo "Size: $(du -h "${SIF_FILE}" | cut -f1)"
     echo ""
-    echo "Skipping build. To force rebuild: FORCE=true ./Singularity.sh"
+    echo "Skipping build. To force rebuild: FORCE=true ./Singularity-ubuntu.sh"
     echo ""
     if [ -n "$SHARED_PATH" ]; then
         echo "=== User Instructions (share with users) ==="
@@ -88,7 +88,7 @@ fi
 
 # Step 1: Build Docker image
 echo "Step 1: Building Docker image..."
-docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" "${SCRIPT_DIR}"
+docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f "${SCRIPT_DIR}/Dockerfile.ubuntu" "${SCRIPT_DIR}"
 
 # Step 2: Convert to Singularity
 echo ""
@@ -200,5 +200,5 @@ else
     echo ""
     echo "=== Shared Installation ==="
     echo "To install for all users, set SHARED_PATH:"
-    echo "  SHARED_PATH=/shared/containers ./Singularity.sh"
+    echo "  SHARED_PATH=/shared/containers ./Singularity-ubuntu.sh"
 fi

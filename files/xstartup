@@ -1,14 +1,10 @@
 #!/bin/bash
-# KasmVNC xstartup - Cinnamon Desktop
+# KasmVNC xstartup - XFCE Desktop
 
 # CRITICAL: Force XDG_RUNTIME_DIR to writable location (Singularity read-only fix)
-# Do NOT use conditional ${VAR:-default} - forcibly override any existing value
 export XDG_RUNTIME_DIR="/tmp/runtime-$(id -u)"
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
-
-# Also set ICEAUTHORITY to writable location (cinnamon-session requirement)
-export ICEAUTHORITY="$XDG_RUNTIME_DIR/ICEauthority"
 
 # Force shell to bash (Apptainer sets a weird default shell)
 export SHELL=/bin/bash
@@ -16,7 +12,6 @@ export SHELL=/bin/bash
 # Force X11 backends (not Wayland)
 export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
-export CLUTTER_BACKEND=x11
 export QT_QPA_PLATFORM=xcb
 export MOZ_ENABLE_WAYLAND=0
 
@@ -24,28 +19,38 @@ export MOZ_ENABLE_WAYLAND=0
 export LIBGL_ALWAYS_SOFTWARE=1
 
 # Desktop environment variables
-export XDG_CURRENT_DESKTOP=X-Cinnamon
-export DESKTOP_SESSION=cinnamon
+export XDG_CURRENT_DESKTOP=XFCE
+export DESKTOP_SESSION=xfce
 export XDG_CONFIG_DIRS=/etc/xdg
 export XDG_DATA_DIRS=/usr/share:/usr/local/share
 
-# Kill any stale Cinnamon processes
-killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
+# Kill any stale XFCE processes
+killall -q xfce4-session xfwm4 xfce4-panel xfdesktop thunar 2>/dev/null || true
 
-# Start Cinnamon with dbus-run-session wrapper
-# Use bash -c to set theme defaults before starting cinnamon-session
+# Start XFCE with dbus-run-session wrapper and apply theme settings
 exec dbus-run-session -- bash -c '
-# Set default theme and background (Adapta-Nokto dark theme)
-gsettings set org.cinnamon.theme name "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.interface gtk-theme "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.wm.preferences theme "Adapta-Nokto" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.interface icon-theme "Adwaita" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-uri "file:///usr/share/backgrounds/tealized.jpg" 2>/dev/null || true
-gsettings set org.cinnamon.desktop.background picture-options "zoom" 2>/dev/null || true
+# Set Adwaita-dark theme (runs after XFCE starts to ensure xfconf is available)
+(
+    sleep 3
+    xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" 2>/dev/null || true
+    xfconf-query -c xsettings -p /Net/IconThemeName -s "Adwaita" 2>/dev/null || true
+    xfconf-query -c xfwm4 -p /general/theme -s "Adwaita-dark" 2>/dev/null || true
 
-# Pin Firefox and Terminal to panel (add panel-launchers applet)
-gsettings set org.cinnamon favorite-apps "[\x27firefox.desktop\x27, \x27org.gnome.Terminal.desktop\x27, \x27nemo.desktop\x27]" 2>/dev/null || true
-gsettings set org.cinnamon enabled-applets "[\x27panel1:left:0:menu@cinnamon.org:0\x27, \x27panel1:left:1:panel-launchers@cinnamon.org:1\x27, \x27panel1:left:2:separator@cinnamon.org:2\x27, \x27panel1:left:3:grouped-window-list@cinnamon.org:3\x27, \x27panel1:right:0:systray@cinnamon.org:4\x27, \x27panel1:right:1:xapp-status@cinnamon.org:5\x27, \x27panel1:right:2:notifications@cinnamon.org:6\x27, \x27panel1:right:3:removable-drives@cinnamon.org:7\x27, \x27panel1:right:4:network@cinnamon.org:8\x27, \x27panel1:right:5:sound@cinnamon.org:9\x27, \x27panel1:right:6:power@cinnamon.org:10\x27, \x27panel1:right:7:calendar@cinnamon.org:11\x27]" 2>/dev/null || true
-# Start Cinnamon
-exec cinnamon-session
+    # Set dark green solid background color (RGB: 25, 45, 30 = #192d1e)
+    # Find the actual monitor name from xfconf (VNC creates dynamic names like "screen")
+    MONITOR=$(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -oP "monitor[^/]+" | head -1)
+    if [ -z "$MONITOR" ]; then
+        MONITOR="monitorscreen"
+    fi
+    BACKDROP_PATH="/backdrop/screen0/${MONITOR}/workspace0"
+
+    # Set solid color mode (color-style=0) and no image (image-style=0)
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/color-style" -n -t int -s 0 2>/dev/null || true
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/image-style" -n -t int -s 0 2>/dev/null || true
+    # Clear any existing image path
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/last-image" -r 2>/dev/null || true
+    # Set the solid color (dark green)
+    xfconf-query -c xfce4-desktop -p "${BACKDROP_PATH}/rgba1" -n -t double -t double -t double -t double -s 0.098039 -s 0.176471 -s 0.117647 -s 1.0 2>/dev/null || true
+) &
+startxfce4
 '

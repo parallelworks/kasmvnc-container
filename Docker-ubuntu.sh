@@ -18,9 +18,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration
-IMAGE_NAME="${IMAGE_NAME:-kasmvnc}"
+IMAGE_NAME="${IMAGE_NAME:-kasmvnc-ubuntu}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc}"
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io/parallelworks/kasmvnc-ubuntu}"
 PUSH="${PUSH:-false}"
 PUSH_LATEST="${PUSH_LATEST:-true}"
 
@@ -84,7 +84,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "=== Docker Build Script ==="
+echo "=== Docker Build Script (Ubuntu 24.04) ==="
 echo "Local image: ${IMAGE_NAME}:${IMAGE_TAG}"
 if [ "$PUSH" = "true" ]; then
     echo "Registry: ${DOCKER_REGISTRY}"
@@ -99,7 +99,7 @@ echo ""
 
 # Step 1: Build Docker image
 echo "=== Step 1: Building Docker image ==="
-docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" "${SCRIPT_DIR}"
+docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f "${SCRIPT_DIR}/Dockerfile.ubuntu" "${SCRIPT_DIR}"
 
 # Tag for registry if we're going to push
 if [ "$PUSH" = "true" ]; then

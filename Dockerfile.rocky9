@@ -103,6 +103,8 @@ RUN rm -f /etc/xdg/autostart/blueman.desktop \
           /etc/xdg/autostart/gnome-keyring-ssh.desktop \
           /etc/xdg/autostart/xfce4-screensaver.desktop \
           /etc/xdg/autostart/xscreensaver.desktop \
+          /etc/xdg/autostart/xfce-polkit.desktop \
+          /etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop \
     2>/dev/null || true
 
 # Copy custom background

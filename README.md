@@ -4,49 +4,66 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 
 ## Features
 
-- Ubuntu 24.04 with XFCE desktop (lightweight, works without system D-Bus)
+- **Two OS options:** Ubuntu 24.04 or Rocky Linux 9
+- XFCE desktop (lightweight, works without system D-Bus)
 - KasmVNC 1.4.0 web-based remote access
 - Nginx reverse proxy with BASE_PATH support
 - UID-aware for Singularity/Apptainer/Enroot
-- HPC software dependencies (csh, ksh, 32-bit libs)
+- HPC software dependencies (csh, ksh, gdb, 32-bit libs)
 - Slurm submit host capable
 - GPU support (`--nv` flag)
-- Adapta-Nokto dark theme
+- Adwaita-dark theme with dark green background
 
 ## Containers
 
-| Container | Description | Size |
-|-----------|-------------|------|
-| `kasmvnc` | Full desktop environment | ~2GB |
-| `kasmproxy` | Lightweight nginx proxy only | ~25MB |
+| Container | Base OS | Description | Registry |
+|-----------|---------|-------------|----------|
+| `kasmvnc` | Ubuntu 24.04 | Full desktop environment | `parallelworks/kasmvnc` |
+| `kasmvnc-rocky9` | Rocky Linux 9 | Full desktop environment | `parallelworks/kasmvnc-rocky9` |
+| `kasmproxy` | Ubuntu 24.04 | Lightweight nginx proxy only | `parallelworks/kasmproxy` |
 
 ## Quick Start
 
-**Build (Docker):**
-```bash
-./Docker.sh
+### Build (Docker)
 
-# Build and push to registry
+```bash
+# Ubuntu 24.04
 ./Docker.sh --push
+
+# Rocky Linux 9
+./Docker-rocky9.sh --push
 ```
 
-**Build (Singularity/Apptainer):**
+### Build (Singularity/Apptainer)
+
 ```bash
+# Ubuntu 24.04
 ./Singularity.sh
+
+# Rocky Linux 9
+./Singularity-rocky9.sh
 ```
 
-**Build (Enroot):**
+### Build (Enroot)
+
 ```bash
+# Local build (requires Docker)
 ./Enroot.sh
+
+# Pull from registry to shared location (no Docker required)
+enroot import -o /shared/containers/kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+enroot import -o /shared/containers/kasmvnc-rocky9.sqsh docker://parallelworks/kasmvnc-rocky9:latest
 ```
 
-**Build Proxy Only (lightweight):**
+### Build Proxy Only (lightweight)
+
 ```bash
 ./Docker-proxy.sh --push       # Docker
 ./Singularity-proxy.sh         # Singularity
 ```
 
-**Run (basic):**
+### Run (Singularity)
+
 ```bash
 singularity run \
     --bind /etc/passwd:/etc/passwd:ro \
@@ -54,7 +71,8 @@ singularity run \
     kasmvnc.sif
 ```
 
-**Run (with GPU and reverse proxy path):**
+### Run (with GPU and reverse proxy path)
+
 ```bash
 singularity run \
     --nv \
@@ -64,7 +82,22 @@ singularity run \
     kasmvnc.sif
 ```
 
-**Run Proxy Only (when KasmVNC is on host):**
+### Run (Enroot from shared location)
+
+```bash
+# Create instance from shared squashfs
+enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
+
+# Run
+enroot start \
+    --mount /etc/passwd:/etc/passwd:ro \
+    --mount /etc/group:/etc/group:ro \
+    --env BASE_PATH=/me/session/$USER/desktop/ \
+    kasmvnc
+```
+
+### Run Proxy Only (when KasmVNC is on host)
+
 ```bash
 docker run -p 8080:8080 \
     -e KASM_HOST=<host-ip> \
@@ -87,6 +120,7 @@ docker run -p 8080:8080 \
 
 See [USAGE.md](USAGE.md) for detailed documentation including:
 - Advanced configuration
+- Shared installation for HPC clusters
 - Slurm integration
 - GPU support
 - Troubleshooting

@@ -10,6 +10,7 @@
 - [GPU Support](#gpu-support)
 - [Docker Usage](#docker-usage)
 - [Enroot Usage](#enroot-usage)
+- [Proxy-Only Mode](#proxy-only-mode)
 - [Troubleshooting](#troubleshooting)
 - [File Structure](#file-structure)
 
@@ -18,17 +19,27 @@
 ### Singularity/Apptainer (Recommended for HPC)
 
 ```bash
-# Build as SIF file
+# Ubuntu 24.04 - Build as SIF file
 ./Singularity.sh
+
+# Rocky Linux 9 - Build as SIF file
+./Singularity-rocky9.sh
 
 # Build as sandbox (no squashfs required)
 BUILD_SANDBOX=true ./Singularity.sh
+BUILD_SANDBOX=true ./Singularity-rocky9.sh
 ```
 
 ### Docker
 
 ```bash
-docker build -t kasmvnc .
+# Ubuntu 24.04
+./Docker.sh
+./Docker.sh --push  # Build and push to registry
+
+# Rocky Linux 9
+./Docker-rocky9.sh
+./Docker-rocky9.sh --push  # Build and push to registry
 ```
 
 ## Running
@@ -81,7 +92,8 @@ Access at: `https://<proxy-host>/me/session/username/desktop/`
 | `KASM_PORT` | `8590` | Internal KasmVNC websocket port |
 | `BASE_PORT` | `8590` | Alias for KASM_PORT (legacy) |
 | `BASE_PATH` | `/` | URL base path for reverse proxy |
-| `VNC_DISPLAY` | `1` | X display number |
+| `VNC_DISPLAY` | auto | X display number (auto-detected if not set) |
+| `VNC_RESOLUTION` | `1920x1080` | Desktop resolution |
 | `CONTAINER_NAME` | `kasmvnc-xfce` | Container identifier |
 
 ### Examples
@@ -89,6 +101,9 @@ Access at: `https://<proxy-host>/me/session/username/desktop/`
 ```bash
 # Custom ports
 singularity run --env NGINX_PORT=9000 --env KASM_PORT=9001 kasmvnc.sif
+
+# Custom resolution
+singularity run --env VNC_RESOLUTION=2560x1440 kasmvnc.sif
 
 # Direct KasmVNC access (bypass Nginx)
 singularity run kasmvnc.sif /usr/local/bin/run_kasm.sh
@@ -99,11 +114,11 @@ singularity run kasmvnc.sif /usr/local/bin/run_kasm.sh
 | Application | Description |
 |-------------|-------------|
 | Firefox | Web browser |
-| Nemo | File manager |
-| GNOME Terminal | Terminal emulator |
-| gedit | Text editor |
+| Thunar | File manager |
+| XFCE Terminal | Terminal emulator |
+| Mousepad | Text editor |
 | Evince | PDF viewer |
-| Eye of GNOME | Image viewer |
+| Ristretto | Image viewer |
 | File Roller | Archive manager |
 | htop | System monitor |
 
@@ -162,7 +177,7 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 # Build only
 ./Docker.sh
 
-# Build and push to default registry (docker.io/parallelworks/kasmvnc)
+# Build and push to default registry (parallelworks/kasmvnc)
 ./Docker.sh --push
 
 # Build and push with specific tag
@@ -170,13 +185,16 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 
 # Build and push to custom registry
 ./Docker.sh --push --registry ghcr.io/myorg/kasmvnc
+
+# Rocky Linux 9
+./Docker-rocky9.sh --push
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--push` | Push image to registry after building |
 | `--tag TAG` | Set image tag (default: latest) |
-| `--registry URL` | Set registry path (default: docker.io/parallelworks/kasmvnc) |
+| `--registry URL` | Set registry path |
 | `--no-latest` | Don't push :latest tag (only push specified tag) |
 
 | Variable | Default | Description |
@@ -203,7 +221,7 @@ docker run -p 8080:8080 -e BASE_PATH=/desktop/ kasmvnc
 
 Enroot is NVIDIA's HPC container runtime, optimized for unprivileged container execution, GPU workloads, and Slurm integration via the pyxis plugin.
 
-### Building
+### Building / Installing
 
 The build script supports two modes and auto-detects which to use based on Docker availability:
 
@@ -225,10 +243,25 @@ BUILD_MODE=registry ./Enroot.sh
 DOCKER_REGISTRY=myregistry.io/myorg/kasmvnc ./Enroot.sh
 ```
 
-**Custom image name/tag:**
+### Shared Installation for HPC Clusters
+
+Install containers to a shared location accessible by all users:
+
 ```bash
-IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
+# Set shared path (adjust to your environment)
+SHARED_PATH=/shared/containers
+
+# Import Ubuntu 24.04 container
+enroot import -o ${SHARED_PATH}/kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+
+# Import Rocky Linux 9 container
+enroot import -o ${SHARED_PATH}/kasmvnc-rocky9.sqsh docker://parallelworks/kasmvnc-rocky9:latest
+
+# Import lightweight proxy container
+enroot import -o ${SHARED_PATH}/kasmproxy.sqsh docker://parallelworks/kasmproxy:latest
 ```
+
+**Important:** For Docker Hub images, use `docker://parallelworks/...` format (without `docker.io/` prefix).
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -241,8 +274,8 @@ IMAGE_NAME=mydesktop IMAGE_TAG=v1.0 ./Enroot.sh
 ### Running
 
 ```bash
-# Create container instance
-enroot create --name kasmvnc kasmvnc.sqsh
+# Create container instance from shared squashfs
+enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
 
 # Basic run
 enroot start kasmvnc
@@ -255,17 +288,43 @@ enroot start \
     --mount /etc/passwd:/etc/passwd:ro \
     --mount /etc/group:/etc/group:ro \
     --mount /home:/home \
-    --env BASE_PATH=/me/session/user/desktop/ \
+    --env BASE_PATH=/me/session/$USER/desktop/ \
     --env NGINX_PORT=8080 \
     kasmvnc
+```
+
+### User Instructions (for shared installations)
+
+Share these instructions with users:
+
+```bash
+# Create your container instance (one-time setup)
+enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
+
+# Run the desktop
+enroot start \
+    --mount /etc/passwd:/etc/passwd:ro \
+    --mount /etc/group:/etc/group:ro \
+    --mount /home:/home \
+    --env BASE_PATH=/me/session/$USER/desktop/ \
+    kasmvnc
+
+# For Rocky Linux 9 version:
+enroot create --name kasmvnc-rocky9 /shared/containers/kasmvnc-rocky9.sqsh
+enroot start \
+    --mount /etc/passwd:/etc/passwd:ro \
+    --mount /etc/group:/etc/group:ro \
+    --mount /home:/home \
+    --env BASE_PATH=/me/session/$USER/desktop/ \
+    kasmvnc-rocky9
 ```
 
 ### Slurm Integration (via pyxis)
 
 ```bash
-srun --container-image=kasmvnc.sqsh \
+srun --container-image=/shared/containers/kasmvnc.sqsh \
      --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \
-     --container-env=BASE_PATH=/me/session/user/desktop/ \
+     --container-env=BASE_PATH=/me/session/$USER/desktop/ \
      /usr/local/bin/run_kasm_nginx.sh
 ```
 
@@ -275,6 +334,7 @@ srun --container-image=kasmvnc.sqsh \
 - Use `--rw` flag if you need a writable container
 - For Slurm integration, ensure pyxis plugin is installed
 - GPU support requires nvidia-container-cli
+- If FUSE is unavailable, you must run `enroot create` before `enroot start`
 
 ## Proxy-Only Mode
 
@@ -282,7 +342,7 @@ Use a lightweight Nginx proxy when KasmVNC is already running on the host.
 
 ### Lightweight Proxy Container
 
-A minimal container (~30MB) with just Nginx - no desktop environment.
+A minimal container (~100MB) with just Nginx - no desktop environment.
 
 **Building:**
 ```bash
@@ -400,15 +460,29 @@ Singularity runs as your real UID/GID:
 singularity exec kasmvnc.sif id
 ```
 
+### Enroot "Could not process JSON input" error
+
+Use the correct Docker Hub URL format (without `docker.io/`):
+```bash
+# Correct
+enroot import -o kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+
+# Incorrect - may cause errors
+enroot import -o kasmvnc.sqsh docker://docker.io/parallelworks/kasmvnc:latest
+```
+
 ## File Structure
 
 ```
 .
-├── Dockerfile              # Full desktop container
+├── Dockerfile              # Full desktop container (Ubuntu 24.04)
+├── Dockerfile.rocky9       # Full desktop container (Rocky Linux 9)
 ├── Dockerfile.proxy        # Lightweight proxy-only container
-├── Docker.sh               # Build script (full container)
+├── Docker.sh               # Build script (Ubuntu container)
+├── Docker-rocky9.sh        # Build script (Rocky 9 container)
 ├── Docker-proxy.sh         # Build script (proxy container)
-├── Singularity.sh          # Build script (Singularity/Apptainer)
+├── Singularity.sh          # Build script (Singularity Ubuntu)
+├── Singularity-rocky9.sh   # Build script (Singularity Rocky 9)
 ├── Singularity-proxy.sh    # Build script (Singularity proxy)
 ├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide

@@ -1,0 +1,252 @@
+FROM rockylinux:9
+LABEL maintainer="Parallel Works <support@parallelworks.com>"
+
+#----------------------
+# Base System Setup
+#----------------------
+
+# Install EPEL and enable CRB (CodeReady Builder) for additional packages
+RUN dnf install -y epel-release && \
+    dnf config-manager --set-enabled crb && \
+    dnf update -y
+
+# Install base utilities (--allowerasing to replace curl-minimal with full curl)
+RUN dnf install -y --allowerasing \
+    sudo nano emacs-nox vim screen telnet iputils curl wget unzip git \
+    python3 python3-pip \
+    nss_wrapper \
+    tcsh ksh \
+    gdb \
+    which procps-ng \
+    && dnf clean all
+
+#------------------------
+# HPC/CAE Software Dependencies
+#------------------------
+
+# Install HPC/CAE dependencies
+RUN dnf install -y \
+    elfutils-libelf elfutils-libelf-devel \
+    mesa-libGL mesa-libGLU \
+    libjpeg-turbo libpng \
+    expat \
+    && dnf clean all
+
+# Install 32-bit libraries if available (for legacy HPC software)
+RUN dnf install -y \
+    glibc.i686 \
+    libstdc++.i686 \
+    2>/dev/null || true && dnf clean all
+
+# pstack: Create pstack using gdb
+RUN printf '#!/bin/bash\ngdb -batch -ex "thread apply all bt" -p "$1" 2>/dev/null\n' > /usr/bin/pstack && \
+    chmod +x /usr/bin/pstack
+
+#------------------------
+# "Meta" user
+#------------------------
+
+# Add group and user with UID/GID 1000
+RUN groupadd -g 1000 metauser && \
+    useradd -u 1000 -g 1000 -m -d /home/metauser -s /bin/bash metauser
+
+# Add metauser to wheel group (sudo equivalent in RHEL/Rocky)
+RUN usermod -aG wheel metauser
+
+# Configure passwordless sudo for wheel group
+RUN echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel-nopasswd && \
+    chmod 440 /etc/sudoers.d/wheel-nopasswd
+
+# Prepare for user-space logs
+RUN mkdir /home/metauser/.logs && chown metauser:metauser /home/metauser/.logs
+
+#------------------------
+# Kasm VNC 1.4.0 + XFCE Desktop
+#------------------------
+
+# Install X11, VNC dependencies, and XFCE desktop
+RUN dnf groupinstall -y "Xfce" && \
+    dnf install -y \
+    xorg-x11-server-Xvfb \
+    xterm \
+    net-tools \
+    dbus-x11 \
+    at-spi2-core \
+    xfce4-terminal \
+    xfce4-whiskermenu-plugin \
+    xfce4-screenshooter \
+    xfce4-taskmanager \
+    thunar \
+    thunar-archive-plugin \
+    mousepad \
+    ristretto \
+    adwaita-icon-theme \
+    gnome-themes-extra \
+    xdg-utils \
+    evince \
+    file-roller \
+    htop \
+    openssh-clients \
+    perl-DateTime \
+    gettext \
+    && dnf clean all
+
+# Install Firefox
+RUN dnf install -y firefox && dnf clean all
+
+# Disable autostart items that don't work in containers
+RUN rm -f /etc/xdg/autostart/blueman.desktop \
+          /etc/xdg/autostart/print-applet.desktop \
+          /etc/xdg/autostart/system-config-printer-applet.desktop \
+          /etc/xdg/autostart/gnome-keyring-pkcs11.desktop \
+          /etc/xdg/autostart/gnome-keyring-secrets.desktop \
+          /etc/xdg/autostart/gnome-keyring-ssh.desktop \
+          /etc/xdg/autostart/xfce4-screensaver.desktop \
+          /etc/xdg/autostart/xscreensaver.desktop \
+    2>/dev/null || true
+
+# Copy custom background
+COPY files/backgrounds/tealized.jpg /usr/share/backgrounds/tealized.jpg
+
+# Download and install KasmVNC 1.4.0 for Rocky/RHEL 9 (using Oracle 9 package - RHEL 9 compatible)
+RUN cd /tmp && \
+    wget https://github.com/kasmtech/KasmVNC/releases/download/v1.4.0/kasmvncserver_oracle_9_1.4.0_x86_64.rpm && \
+    dnf install -y ./kasmvncserver_oracle_9_1.4.0_x86_64.rpm && \
+    rm kasmvncserver_oracle_9_1.4.0_x86_64.rpm && \
+    dnf clean all
+
+#------------------------
+# Nginx Reverse Proxy
+#------------------------
+
+# Install Nginx
+RUN dnf install -y nginx && dnf clean all
+
+# Copy Nginx config template
+COPY files/nginx.conf /etc/nginx/nginx.conf.template
+
+#------------------------
+# Startup Scripts
+#------------------------
+
+# Copy startup scripts
+COPY files/run_kasm.sh /usr/local/bin/run_kasm.sh
+COPY files/run_kasm_nginx.sh /usr/local/bin/run_kasm_nginx.sh
+COPY files/run_nginx_proxy.sh /usr/local/bin/run_nginx_proxy.sh
+RUN chmod 755 /usr/local/bin/run_kasm.sh /usr/local/bin/run_kasm_nginx.sh /usr/local/bin/run_nginx_proxy.sh
+
+# Entrypoint script (UID-aware for Singularity)
+COPY files/base_entrypoint.sh /usr/bin/base_entrypoint.sh
+RUN chmod 755 /usr/bin/base_entrypoint.sh
+ENTRYPOINT ["/usr/bin/base_entrypoint.sh"]
+
+# Source container environment for all shell types
+RUN echo '[ -f /tmp/env.sh ] && . /tmp/env.sh' > /etc/profile.d/container-env.sh && \
+    echo 'export SHELL=/bin/bash' >> /etc/profile.d/container-env.sh && \
+    echo 'PS1='\''\u@\h:\w\$ '\' >> /etc/profile.d/container-env.sh && \
+    chmod 644 /etc/profile.d/container-env.sh && \
+    echo '[ -f /tmp/env.sh ] && . /tmp/env.sh' >> /etc/bashrc && \
+    echo 'export SHELL=/bin/bash' >> /etc/bashrc && \
+    echo 'PS1='\''\u@\h:\w\$ '\' >> /etc/bashrc
+
+#------------------------
+# User Home Setup
+#------------------------
+
+# Rename metauser home as "vanilla" template
+RUN mv /home/metauser /metauser_home_vanilla
+
+# VNC configuration directory
+RUN mkdir -p /metauser_home_vanilla/.vnc
+COPY files/xstartup /metauser_home_vanilla/.vnc/xstartup
+COPY files/kasmvnc.yaml /metauser_home_vanilla/.vnc/kasmvnc.yaml
+RUN chmod 755 /metauser_home_vanilla/.vnc/xstartup
+
+# Configure XFCE settings via xfconf XML files
+# Set Adwaita-dark theme and icons, dark green background
+RUN mkdir -p /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xsettings" version="1.0">\n\
+  <property name="Net" type="empty">\n\
+    <property name="ThemeName" type="string" value="Adwaita-dark"/>\n\
+    <property name="IconThemeName" type="string" value="Adwaita"/>\n\
+  </property>\n\
+  <property name="Gtk" type="empty">\n\
+    <property name="FontName" type="string" value="Sans 10"/>\n\
+    <property name="CursorThemeName" type="string" value="Adwaita"/>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfwm4" version="1.0">\n\
+  <property name="general" type="empty">\n\
+    <property name="theme" type="string" value="Adwaita-dark"/>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<channel name="xfce4-desktop" version="1.0">\n\
+  <property name="backdrop" type="empty">\n\
+    <property name="screen0" type="empty">\n\
+      <property name="monitorscreen" type="empty">\n\
+        <property name="workspace0" type="empty">\n\
+          <property name="color-style" type="int" value="0"/>\n\
+          <property name="image-style" type="int" value="0"/>\n\
+          <property name="rgba1" type="array">\n\
+            <value type="double" value="0.098039"/>\n\
+            <value type="double" value="0.176471"/>\n\
+            <value type="double" value="0.117647"/>\n\
+            <value type="double" value="1.000000"/>\n\
+          </property>\n\
+        </property>\n\
+      </property>\n\
+    </property>\n\
+  </property>\n\
+</channel>' > /metauser_home_vanilla/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml && \
+    chown -R 1000:1000 /metauser_home_vanilla/.config
+
+# Create .bashrc with PS1 override for the vanilla home
+RUN echo '# Source global definitions' > /metauser_home_vanilla/.bashrc && \
+    echo '[ -f /etc/bashrc ] && . /etc/bashrc' >> /metauser_home_vanilla/.bashrc && \
+    echo '' >> /metauser_home_vanilla/.bashrc && \
+    echo '# Force bash shell and normal prompt (override Apptainer)' >> /metauser_home_vanilla/.bashrc && \
+    echo 'export SHELL=/bin/bash' >> /metauser_home_vanilla/.bashrc && \
+    echo 'PS1='\''\u@\h:\w\$ '\' >> /metauser_home_vanilla/.bashrc && \
+    chown 1000:1000 /metauser_home_vanilla/.bashrc
+
+# Create a bash wrapper that forces correct PS1 and environment
+RUN cat > /usr/local/bin/container-bash << 'BASHWRAPPER'
+#!/bin/bash
+export SHELL=/bin/bash
+export PS1='\u@\h:\w\$ '
+exec /bin/bash --login "$@"
+BASHWRAPPER
+RUN chmod 755 /usr/local/bin/container-bash
+
+# Configure xfce4-terminal to use bash properly
+RUN mkdir -p /metauser_home_vanilla/.config/xfce4/terminal && \
+    echo '[Configuration]\nFontName=Monospace 11\nMiscAlwaysShowTabs=FALSE\nMiscBell=FALSE\nMiscConfirmClose=TRUE\nColorForeground=#f8f8f2\nColorBackground=#282a36\nColorPalette=#21222c;#ff5555;#50fa7b;#f1fa8c;#bd93f9;#ff79c6;#8be9fd;#f8f8f2;#6272a4;#ff6e6e;#69ff94;#ffffa5;#d6acff;#ff92df;#a4ffff;#ffffff\nCommandLoginShell=TRUE\n' > /metauser_home_vanilla/.config/xfce4/terminal/terminalrc && \
+    chown -R 1000:1000 /metauser_home_vanilla/.config/xfce4/terminal
+
+# Fix home permissions (for Singularity compatibility)
+RUN chmod 777 /home
+
+#------------------------
+# Environment Configuration
+#------------------------
+
+# Default entrypoint command (Nginx reverse proxy version)
+ENV DEFAULT_ENTRYPOINT_COMMAND="/usr/local/bin/run_kasm_nginx.sh"
+
+# Nginx/proxy configuration defaults
+ENV NGINX_PORT=8080
+ENV BASE_PATH=/
+ENV BASE_PORT=8590
+ENV KASM_PORT=8590
+
+# Container identification
+ENV CONTAINER_NAME='kasmvnc-xfce-rocky9'
+
+# Switch to non-root user
+USER metauser
+
+# Expose Nginx port
+EXPOSE 8080

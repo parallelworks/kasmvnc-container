@@ -261,7 +261,7 @@ ENV BASE_PORT=8590
 ENV KASM_PORT=8590
 
 # Container identification
-ENV CONTAINER_NAME='kasmvnc-xfce'
+ENV CONTAINER_NAME='kasmvnc-ubuntu'
 
 # Switch to non-root user
 USER metauser

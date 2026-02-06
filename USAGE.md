@@ -20,13 +20,13 @@
 
 ```bash
 # Ubuntu 24.04 - Build as SIF file
-./Singularity.sh
+./Singularity-ubuntu.sh
 
 # Rocky Linux 9 - Build as SIF file
 ./Singularity-rocky9.sh
 
 # Build as sandbox (no squashfs required)
-BUILD_SANDBOX=true ./Singularity.sh
+BUILD_SANDBOX=true ./Singularity-ubuntu.sh
 BUILD_SANDBOX=true ./Singularity-rocky9.sh
 ```
 
@@ -34,8 +34,8 @@ BUILD_SANDBOX=true ./Singularity-rocky9.sh
 
 ```bash
 # Ubuntu 24.04
-./Docker.sh
-./Docker.sh --push  # Build and push to registry
+./Docker-ubuntu.sh
+./Docker-ubuntu.sh --push  # Build and push to registry
 
 # Rocky Linux 9
 ./Docker-rocky9.sh
@@ -47,7 +47,7 @@ BUILD_SANDBOX=true ./Singularity-rocky9.sh
 ### Basic
 
 ```bash
-singularity run kasmvnc.sif
+singularity run kasmvnc-ubuntu.sif
 ```
 
 ### Recommended (proper username resolution)
@@ -56,7 +56,7 @@ singularity run kasmvnc.sif
 singularity run \
     --bind /etc/passwd:/etc/passwd:ro \
     --bind /etc/group:/etc/group:ro \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 ### Full Featured for HPC
@@ -68,7 +68,7 @@ singularity run \
     --bind /etc/group:/etc/group:ro \
     --bind /scratch \
     --bind /home \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 ### Behind Reverse Proxy
@@ -79,7 +79,7 @@ singularity run \
     --env BASE_PATH=/me/session/username/desktop/ \
     --bind /etc/passwd:/etc/passwd:ro \
     --bind /etc/group:/etc/group:ro \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 Access at: `https://<proxy-host>/me/session/username/desktop/`
@@ -100,13 +100,13 @@ Access at: `https://<proxy-host>/me/session/username/desktop/`
 
 ```bash
 # Custom ports
-singularity run --env NGINX_PORT=9000 --env KASM_PORT=9001 kasmvnc.sif
+singularity run --env NGINX_PORT=9000 --env KASM_PORT=9001 kasmvnc-ubuntu.sif
 
 # Custom resolution
-singularity run --env VNC_RESOLUTION=2560x1440 kasmvnc.sif
+singularity run --env VNC_RESOLUTION=2560x1440 kasmvnc-ubuntu.sif
 
 # Direct KasmVNC access (bypass Nginx)
-singularity run kasmvnc.sif /usr/local/bin/run_kasm.sh
+singularity run kasmvnc-ubuntu.sif /usr/local/bin/run_kasm.sh
 ```
 
 ## Included Applications
@@ -144,7 +144,7 @@ singularity run \
     --bind /usr/lib/x86_64-linux-gnu/slurm:/usr/lib/x86_64-linux-gnu/slurm:ro \
     --bind /scratch \
     --bind /home \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 ### Verification
@@ -164,7 +164,7 @@ sbatch job.sh  # Submit a job
 ## GPU Support
 
 ```bash
-singularity run --nv kasmvnc.sif
+singularity run --nv kasmvnc-ubuntu.sif
 ```
 
 The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU applications may need to unset this variable.
@@ -175,16 +175,16 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 
 ```bash
 # Build only
-./Docker.sh
+./Docker-ubuntu.sh
 
 # Build and push to default registry (parallelworks/kasmvnc)
-./Docker.sh --push
+./Docker-ubuntu.sh --push
 
 # Build and push with specific tag
-./Docker.sh --push --tag v1.0.0
+./Docker-ubuntu.sh --push --tag v1.0.0
 
 # Build and push to custom registry
-./Docker.sh --push --registry ghcr.io/myorg/kasmvnc
+./Docker-ubuntu.sh --push --registry ghcr.io/myorg/kasmvnc
 
 # Rocky Linux 9
 ./Docker-rocky9.sh --push
@@ -199,9 +199,9 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `IMAGE_NAME` | `kasmvnc` | Local image name |
+| `IMAGE_NAME` | `kasmvnc-ubuntu` | Local image name |
 | `IMAGE_TAG` | `latest` | Image tag |
-| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc` | Registry path |
+| `DOCKER_REGISTRY` | `docker.io/parallelworks/kasmvnc-ubuntu` | Registry path |
 | `PUSH` | `false` | Set to `true` to push |
 | `PUSH_LATEST` | `true` | Also push :latest when pushing versioned tag |
 
@@ -209,10 +209,10 @@ The container defaults to software rendering (`LIBGL_ALWAYS_SOFTWARE=1`). GPU ap
 
 ```bash
 # Run locally
-docker run -p 8080:8080 kasmvnc
+docker run -p 8080:8080 kasmvnc-ubuntu
 
 # Run with custom base path
-docker run -p 8080:8080 -e BASE_PATH=/desktop/ kasmvnc
+docker run -p 8080:8080 -e BASE_PATH=/desktop/ kasmvnc-ubuntu
 
 # Access at http://localhost:8080/
 ```
@@ -252,7 +252,7 @@ Install containers to a shared location accessible by all users:
 SHARED_PATH=/shared/containers
 
 # Import Ubuntu 24.04 container
-enroot import -o ${SHARED_PATH}/kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+enroot import -o ${SHARED_PATH}/kasmvnc-ubuntu.sqsh docker://parallelworks/kasmvnc-ubuntu:latest
 
 # Import Rocky Linux 9 container
 enroot import -o ${SHARED_PATH}/kasmvnc-rocky9.sqsh docker://parallelworks/kasmvnc-rocky9:latest
@@ -266,7 +266,7 @@ enroot import -o ${SHARED_PATH}/kasmproxy.sqsh docker://parallelworks/kasmproxy:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BUILD_MODE` | auto-detect | `local` (build with Docker) or `registry` (pull from registry) |
-| `DOCKER_REGISTRY` | `parallelworks/kasmvnc` | Registry image path (no `docker.io/` for Docker Hub) |
+| `DOCKER_REGISTRY` | `parallelworks/kasmvnc-ubuntu` | Registry image path (no `docker.io/` for Docker Hub) |
 | `IMAGE_NAME` | `kasmvnc` | Local image name / output prefix |
 | `IMAGE_TAG` | `latest` | Image tag |
 | `SQSH_FILE` | `${IMAGE_NAME}.sqsh` | Output squashfs filename |
@@ -275,13 +275,13 @@ enroot import -o ${SHARED_PATH}/kasmproxy.sqsh docker://parallelworks/kasmproxy:
 
 ```bash
 # Create container instance from shared squashfs
-enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
+enroot create --name kasmvnc-ubuntu /shared/containers/kasmvnc-ubuntu.sqsh
 
 # Basic run
-enroot start kasmvnc
+enroot start kasmvnc-ubuntu
 
 # With GPU support
-enroot start --env NVIDIA_VISIBLE_DEVICES=all kasmvnc
+enroot start --env NVIDIA_VISIBLE_DEVICES=all kasmvnc-ubuntu
 
 # With bind mounts and reverse proxy path
 enroot start \
@@ -290,7 +290,7 @@ enroot start \
     --mount /home:/home \
     --env BASE_PATH=/me/session/$USER/desktop/ \
     --env NGINX_PORT=8080 \
-    kasmvnc
+    kasmvnc-ubuntu
 ```
 
 ### User Instructions (for shared installations)
@@ -299,7 +299,7 @@ Share these instructions with users:
 
 ```bash
 # Create your container instance (one-time setup)
-enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
+enroot create --name kasmvnc-ubuntu /shared/containers/kasmvnc-ubuntu.sqsh
 
 # Run the desktop
 enroot start \
@@ -322,7 +322,7 @@ enroot start \
 ### Slurm Integration (via pyxis)
 
 ```bash
-srun --container-image=/shared/containers/kasmvnc.sqsh \
+srun --container-image=/shared/containers/kasmvnc-ubuntu.sqsh \
      --container-mounts=/etc/passwd:/etc/passwd:ro,/etc/group:/etc/group:ro \
      --container-env=BASE_PATH=/me/session/$USER/desktop/ \
      /usr/local/bin/run_kasm_nginx.sh
@@ -395,23 +395,23 @@ Alternatively, use the full container as a lightweight Nginx proxy when KasmVNC 
 
 ```bash
 # Basic - proxy to KasmVNC on localhost:8443
-singularity run kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+singularity run kasmvnc-ubuntu.sif /usr/local/bin/run_nginx_proxy.sh
 
 # With custom KasmVNC port
-singularity run --env KASM_PORT=6901 kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+singularity run --env KASM_PORT=6901 kasmvnc-ubuntu.sif /usr/local/bin/run_nginx_proxy.sh
 
 # With BASE_PATH for reverse proxy
 singularity run \
     --env KASM_PORT=8443 \
     --env BASE_PATH=/me/session/user/desktop/ \
     --env NGINX_PORT=8080 \
-    kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+    kasmvnc-ubuntu-ubuntu.sif /usr/local/bin/run_nginx_proxy.sh
 
 # Connect to KasmVNC on different host
 singularity run \
     --env KASM_HOST=192.168.1.100 \
     --env KASM_PORT=8443 \
-    kasmvnc.sif /usr/local/bin/run_nginx_proxy.sh
+    kasmvnc-ubuntu.sif /usr/local/bin/run_nginx_proxy.sh
 ```
 
 ### Environment Variables
@@ -450,14 +450,14 @@ Bind-mount passwd files:
 
 Use writable tmpfs overlay:
 ```bash
-singularity run --writable-tmpfs kasmvnc.sif
+singularity run --writable-tmpfs kasmvnc-ubuntu.sif
 ```
 
 ### UID/GID Verification
 
 Singularity runs as your real UID/GID:
 ```bash
-singularity exec kasmvnc.sif id
+singularity exec kasmvnc-ubuntu.sif id
 ```
 
 ### Enroot "Could not process JSON input" error
@@ -465,7 +465,7 @@ singularity exec kasmvnc.sif id
 Use the correct Docker Hub URL format (without `docker.io/`):
 ```bash
 # Correct
-enroot import -o kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+enroot import -o kasmvnc-ubuntu.sqsh docker://parallelworks/kasmvnc-ubuntu:latest
 
 # Incorrect - may cause errors
 enroot import -o kasmvnc.sqsh docker://docker.io/parallelworks/kasmvnc:latest
@@ -475,13 +475,13 @@ enroot import -o kasmvnc.sqsh docker://docker.io/parallelworks/kasmvnc:latest
 
 ```
 .
-├── Dockerfile              # Full desktop container (Ubuntu 24.04)
+├── Dockerfile.ubuntu       # Full desktop container (Ubuntu 24.04)
 ├── Dockerfile.rocky9       # Full desktop container (Rocky Linux 9)
 ├── Dockerfile.proxy        # Lightweight proxy-only container
-├── Docker.sh               # Build script (Ubuntu container)
+├── Docker-ubuntu.sh        # Build script (Ubuntu container)
 ├── Docker-rocky9.sh        # Build script (Rocky 9 container)
 ├── Docker-proxy.sh         # Build script (proxy container)
-├── Singularity.sh          # Build script (Singularity Ubuntu)
+├── Singularity-ubuntu.sh   # Build script (Singularity Ubuntu)
 ├── Singularity-rocky9.sh   # Build script (Singularity Rocky 9)
 ├── Singularity-proxy.sh    # Build script (Singularity proxy)
 ├── Enroot.sh               # Build script (Enroot)

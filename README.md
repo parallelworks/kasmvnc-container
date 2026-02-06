@@ -18,7 +18,7 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 
 | Container | Base OS | Description | Registry |
 |-----------|---------|-------------|----------|
-| `kasmvnc` | Ubuntu 24.04 | Full desktop environment | `parallelworks/kasmvnc` |
+| `kasmvnc-ubuntu` | Ubuntu 24.04 | Full desktop environment | `parallelworks/kasmvnc-ubuntu` |
 | `kasmvnc-rocky9` | Rocky Linux 9 | Full desktop environment | `parallelworks/kasmvnc-rocky9` |
 | `kasmproxy` | Ubuntu 24.04 | Lightweight nginx proxy only | `parallelworks/kasmproxy` |
 
@@ -28,7 +28,7 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 
 ```bash
 # Ubuntu 24.04
-./Docker.sh --push
+./Docker-ubuntu.sh --push
 
 # Rocky Linux 9
 ./Docker-rocky9.sh --push
@@ -38,7 +38,7 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 
 ```bash
 # Ubuntu 24.04
-./Singularity.sh
+./Singularity-ubuntu.sh
 
 # Rocky Linux 9
 ./Singularity-rocky9.sh
@@ -51,7 +51,7 @@ A containerized XFCE desktop environment accessible via web browser, optimized f
 ./Enroot.sh
 
 # Pull from registry to shared location (no Docker required)
-enroot import -o /shared/containers/kasmvnc.sqsh docker://parallelworks/kasmvnc:latest
+enroot import -o /shared/containers/kasmvnc-ubuntu.sqsh docker://parallelworks/kasmvnc-ubuntu:latest
 enroot import -o /shared/containers/kasmvnc-rocky9.sqsh docker://parallelworks/kasmvnc-rocky9:latest
 ```
 
@@ -68,7 +68,7 @@ enroot import -o /shared/containers/kasmvnc-rocky9.sqsh docker://parallelworks/k
 singularity run \
     --bind /etc/passwd:/etc/passwd:ro \
     --bind /etc/group:/etc/group:ro \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 ### Run (with GPU and reverse proxy path)
@@ -79,21 +79,21 @@ singularity run \
     --env BASE_PATH=/me/session/username/desktop/ \
     --bind /etc/passwd:/etc/passwd:ro \
     --bind /etc/group:/etc/group:ro \
-    kasmvnc.sif
+    kasmvnc-ubuntu.sif
 ```
 
 ### Run (Enroot from shared location)
 
 ```bash
 # Create instance from shared squashfs
-enroot create --name kasmvnc /shared/containers/kasmvnc.sqsh
+enroot create --name kasmvnc-ubuntu /shared/containers/kasmvnc-ubuntu.sqsh
 
 # Run
 enroot start \
     --mount /etc/passwd:/etc/passwd:ro \
     --mount /etc/group:/etc/group:ro \
     --env BASE_PATH=/me/session/$USER/desktop/ \
-    kasmvnc
+    kasmvnc-ubuntu
 ```
 
 ### Run Proxy Only (when KasmVNC is on host)

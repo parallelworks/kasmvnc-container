@@ -25,21 +25,16 @@ DESKTOP_NUMBER="${VNC_DISPLAY:-1}"
 echo "[INFO] Kasm VNC port: $BASE_PORT (websocket)"
 echo "[INFO] VNC display: :$DESKTOP_NUMBER"
 
-# Aggressive cleanup of ALL stale VNC sessions for this user
-echo "[INFO] Cleaning up stale VNC sessions..."
+# Clean up only our display to allow concurrent sessions
+echo "[INFO] Cleaning up VNC display :${DESKTOP_NUMBER}..."
 
-# Kill all existing vncserver processes for this user
-pkill -u $(id -u) -f "Xvnc" 2>/dev/null || true
-pkill -u $(id -u) -f "vncserver" 2>/dev/null || true
-
-# Clean up all VNC lock files we might own
-rm -f /tmp/.X*-lock 2>/dev/null || true
-rm -f /tmp/.X11-unix/X* 2>/dev/null || true
-rm -f "$HOME/.vnc"/*.pid 2>/dev/null || true
-rm -f "$HOME/.vnc"/*.log 2>/dev/null || true
-
-# Also try the vncserver -kill command for our display
+# Kill only the VNC process on our display
+pkill -u $(id -u) -f "Xvnc.*:${DESKTOP_NUMBER}( |$)" 2>/dev/null || true
 vncserver -kill :${DESKTOP_NUMBER} 2>/dev/null || true
+
+# Clean up only our display's lock files
+rm -f "/tmp/.X${DESKTOP_NUMBER}-lock" 2>/dev/null || true
+rm -f "/tmp/.X11-unix/X${DESKTOP_NUMBER}" 2>/dev/null || true
 
 # Give processes time to die
 sleep 1

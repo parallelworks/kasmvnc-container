@@ -84,23 +84,10 @@ vncserver -kill :${DESKTOP_NUMBER} 2>/dev/null || true
 rm -f "/tmp/.X${DESKTOP_NUMBER}-lock" 2>/dev/null || true
 rm -f "/tmp/.X11-unix/X${DESKTOP_NUMBER}" 2>/dev/null || true
 
-# Clean up old VNC config files that might conflict with our setup
-# These will be regenerated fresh each time to ensure consistent behavior
-rm -f "$HOME/.vnc/kasmvnc.yaml" 2>/dev/null || true
-rm -f "$HOME/.vnc/xstartup" 2>/dev/null || true
-rm -f "$HOME/.vnc/xstartup.turbovnc" 2>/dev/null || true
-rm -f "$HOME/.vnc/kasm-xstartup" 2>/dev/null || true
-rm -f "$HOME/.vnc/passwd" 2>/dev/null || true
-rm -f "$HOME/.kasmpasswd" 2>/dev/null || true
-rm -rf "$HOME/.vnc/ssl" 2>/dev/null || true
-
-# Also try the vncserver -kill command for our display
-vncserver -kill :${DESKTOP_NUMBER} 2>/dev/null || true
-
 # Give processes time to die
 sleep 1
 
-# Ensure .vnc directory exists (fresh)
+# Ensure .vnc directory exists
 mkdir -p "$HOME/.vnc"
 
 # Get the external hostname for WebSocket connection
@@ -223,9 +210,6 @@ export XDG_CURRENT_DESKTOP=X-Cinnamon
 export DESKTOP_SESSION=cinnamon
 export XDG_CONFIG_DIRS=/etc/xdg
 export XDG_DATA_DIRS=/usr/share:/usr/local/share
-
-# Kill any stale Cinnamon processes
-killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
 
 # Fix for LDAP/NIS users not in /etc/passwd - create temp passwd entry
 # This is needed for dbus to start properly

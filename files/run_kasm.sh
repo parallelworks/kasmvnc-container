@@ -93,9 +93,6 @@ export DESKTOP_SESSION=cinnamon
 export XDG_CONFIG_DIRS=/etc/xdg
 export XDG_DATA_DIRS=/usr/share:/usr/local/share
 
-# Kill any stale Cinnamon processes
-killall -q cinnamon cinnamon-session cinnamon-panel muffin nemo nemo-desktop 2>/dev/null || true
-
 # Start Cinnamon with dbus-run-session wrapper
 exec dbus-run-session -- cinnamon-session
 EOF

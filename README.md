@@ -70,4 +70,4 @@ See [USAGE.md](USAGE.md) for detailed documentation including:
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.

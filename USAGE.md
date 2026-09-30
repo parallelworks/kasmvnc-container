@@ -323,7 +323,7 @@ singularity exec kasmvnc.sif id
 ├── Enroot.sh               # Build script (Enroot)
 ├── README.md               # Quick start guide
 ├── USAGE.md                # This file
-├── LICENSE                 # MIT License
+├── LICENSE                 # Apache License 2.0
 └── files/
     ├── base_entrypoint.sh  # UID-aware entrypoint
     ├── run_kasm.sh         # KasmVNC startup (direct)
